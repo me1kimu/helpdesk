@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historial de Ventas – ManuMarket</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <!-- Barra de navegación común -->
+  <nav class="bg-gray-900 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex-shrink-0">
+          <a href="/dashboard">
+            <img class="h-8 w-auto" src="ManuLogo_WIP.png" alt="Logo ManuMarket" />
+          </a>
+        </div>        <div class="hidden md:flex md:space-x-8">
+          <a href="/dashboard" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium hover:border-blue-500 hover:text-gray-200">Dashboard</a>
+          <a id="inventarioLink" href="/inventario" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium hover:border-blue-500 hover:text-gray-200">Inventario</a>
+          <a href="/pos" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium hover:border-blue-500 hover:text-gray-200">Punto de Venta</a>
+          <a href="/historial-ventas" class="inline-flex items-center px-1 pt-1 border-b-2 border-blue-500 text-sm font-medium text-gray-100">Historial de Ventas</a>
+          <a id="trabajadoresLink" href="/trabajadores" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium hover:border-blue-500 hover:text-gray-200">Trabajadores</a>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span id="userInfo" class="text-sm text-gray-300">—</span>
+          <a href="/logout" class="text-sm font-medium text-red-400 hover:text-red-300">Cerrar sesión</a>
+        </div>
+        <div class="-mr-2 flex md:hidden">
+          <button id="btnMenu" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-800">
+            <!-- icono hamburguesa -->
+            <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>    <div id="menuResponsive" class="md:hidden hidden bg-gray-800 px-2 pt-2 pb-3 space-y-1">
+      <a href="/dashboard" class="block px-3 py-2 rounded-md text-base font-medium text-gray-200 hover:bg-gray-700">Dashboard</a>
+      <a id="inventarioLinkMobile" href="/inventario" class="block px-3 py-2 rounded-md text-base font-medium text-gray-200 hover:bg-gray-700">Inventario</a>
+      <a href="/pos" class="block px-3 py-2 rounded-md text-base font-medium text-gray-200 hover:bg-gray-700">Punto de Venta</a>
+      <a href="/historial-ventas" class="block px-3 py-2 rounded-md text-base font-medium text-gray-200 hover:bg-gray-700">Historial de Ventas</a>
+      <a id="trabajadoresLinkMobile" href="/trabajadores" class="block px-3 py-2 rounded-md text-base font-medium text-gray-200 hover:bg-gray-700">Trabajadores</a>
+      <a href="/logout" class="block px-3 py-2 rounded-md text-base font-medium text-red-400 hover:bg-gray-700">Cerrar sesión</a>
+    </div>
+  </nav>
+
+  <script>
+    // Menú hamburguesa responsive
+    const btnMenu = document.getElementById("btnMenu");
+    const menuResponsive = document.getElementById("menuResponsive");
+    if (btnMenu && menuResponsive) {
+      btnMenu.addEventListener("click", () => {
+        menuResponsive.classList.toggle("hidden");
+      });
+    }
+  </script>
+
+  <main class="max-w-screen-2xl mx-auto p-6">
+    <h1 class="text-2xl font-semibold text-gray-800 mb-4">Historial de Ventas</h1>    <!-- Bloque de filtros -->
+    <div class="flex flex-wrap gap-4 mb-6">
+      <input type="date" id="fechaFiltro" class="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+      <input type="text" id="vendedorFiltro" placeholder="Filtrar por vendedor" class="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+      <input type="text" id="productoFiltro" placeholder="Filtrar por producto (código o nombre)" class="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+      <button id="btnFiltrar" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400">
+        Filtrar
+      </button>
+      <button id="btnLimpiarFiltros" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">
+        Limpiar Filtros
+      </button>    </div>
+
+    <!-- Indicador de filtros activos -->
+    <div id="filtrosActivos" class="mb-4 hidden">
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span class="text-sm font-medium text-blue-800">Filtros aplicados:</span>
+            <div id="listaFiltros" class="flex flex-wrap gap-2">
+              <!-- Los filtros activos se mostrarán aquí -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de historial -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendedor</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Venta</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Detalles</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyHistorial" class="bg-white divide-y divide-gray-200">
+          <!-- JS inyectará las filas aquí -->        </tbody>
+      </table>
+    </div>    <!-- Modal para mostrar detalles de la venta -->
+    <div id="modalDetalle" class="fixed inset-0 bg-gray-400 bg-opacity-5 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto border-2 border-gray-300 ring-4 ring-blue-100"><div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center rounded-t-lg">
+          <h2 class="text-xl font-semibold text-gray-800">Detalles de la Venta</h2>
+          <button id="btnCerrarModal" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1 text-3xl leading-none">&times;</button>
+        </div>
+        
+        <div class="p-6">
+          <!-- Información de la venta -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="text-lg font-medium text-gray-800 mb-3">Información General</h3>
+              <div class="space-y-2">
+                <p><span class="font-medium">ID Transacción:</span> <span id="modalTransaccionId">-</span></p>
+                <p><span class="font-medium">Estado:</span> <span id="modalEstado" class="px-2 py-1 rounded text-sm bg-green-100 text-green-800">-</span></p>
+                <p><span class="font-medium">Fecha de Venta:</span> <span id="modalFecha">-</span></p>
+                <p><span class="font-medium">Cantidad de Productos:</span> <span id="modalCantidadProductos">-</span></p>
+              </div>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="text-lg font-medium text-gray-800 mb-3">Vendedor</h3>
+              <div class="space-y-2">
+                <p><span class="font-medium">Nombre:</span> <span id="modalVendedorNombre">-</span></p>
+                <p><span class="font-medium">Usuario:</span> <span id="modalVendedorUsuario">-</span></p>
+                <p><span class="font-medium">Rol:</span> <span id="modalVendedorRol">-</span></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen de totales -->
+          <div class="bg-blue-50 p-4 rounded-lg mb-6">
+            <h3 class="text-lg font-medium text-gray-800 mb-3">Resumen de Totales</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="text-center">
+                <p class="text-sm text-gray-600">Total sin Descuento</p>
+                <p class="text-xl font-bold text-gray-800" id="modalTotalSinDescuento">-</p>
+              </div>
+              <div class="text-center" id="modalDescuentoContainer">
+                <p class="text-sm text-gray-600">Descuento Aplicado</p>
+                <p class="text-xl font-bold text-red-600" id="modalDescuento">-</p>
+                <p class="text-xs text-gray-500" id="modalPorcentajeDescuento">-</p>
+              </div>
+              <div class="text-center">
+                <p class="text-sm text-gray-600">Total Final</p>
+                <p class="text-2xl font-bold text-green-600" id="modalTotalFinal">-</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lista de productos -->
+          <div class="bg-white border border-gray-200 rounded-lg">
+            <h3 class="text-lg font-medium text-gray-800 p-4 border-b border-gray-200">Productos Vendidos</h3>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="modalProductosLista" class="bg-white divide-y divide-gray-200">
+                  <!-- JS llenará esta tabla -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  // Same-origin mock API
+  const BACKEND_URL = "";
+    const token = localStorage.getItem("token");
+    // Agrega el header Authorization si hay token
+    const headers = token
+      ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+      : { "Content-Type": "application/json" };    const tbody = document.getElementById("tbodyHistorial");
+    const fechaInput = document.getElementById("fechaFiltro");
+    const vendedorInput = document.getElementById("vendedorFiltro");
+    const productoInput = document.getElementById("productoFiltro");
+    const btnFiltrar = document.getElementById("btnFiltrar");
+    const btnLimpiarFiltros = document.getElementById("btnLimpiarFiltros");
+
+    // Función para formatear moneda CLP
+    function formatearMoneda(v) {
+      return new Intl.NumberFormat("es-CL",{ style:"currency", currency:"CLP" }).format(v);
+    }    // Carga el historial (con o sin filtros)
+    async function cargarHistorial() {
+      // Actualizar indicadores de filtros
+      actualizarIndicadoresFiltros();
+      
+      tbody.innerHTML = "";
+      // construir query params
+      const params = new URLSearchParams();
+      if (fechaInput.value) {
+        params.append("fecha_inicio", fechaInput.value);
+        params.append("fecha_fin", fechaInput.value);
+      }
+      if (vendedorInput.value.trim()) {
+        params.append("vendedor", vendedorInput.value.trim());
+      }
+      if (productoInput.value.trim()) {
+        params.append("producto", productoInput.value.trim());
+      }
+
+      try {
+        const resp = await fetch(`/ventas/historial-ventas/${ params.toString() ? "?" + params : "" }`, {
+          method: "GET",
+          headers
+        });
+        if (!resp.ok) throw new Error("No se pudo cargar el historial de ventas");
+        const data = await resp.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No hay resultados.</td></tr>`;
+          return;
+        }
+
+        data.forEach(venta => {
+          const row = document.createElement("tr");
+          row.className = "hover:bg-gray-50";          row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${venta.id}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${venta.vendedor}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatearMoneda(venta.total)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${venta.fecha_local || new Date(venta.fecha || venta.creado_en).toLocaleDateString()}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">
+              <button data-id="${venta.id}" class="btnVerDetalles px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs transition-colors duration-200">Ver Detalles</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error("Error al cargar historial:", err);
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-600">Error al cargar datos.</td></tr>`;      }
+    }    // Función para limpiar todos los filtros
+    function limpiarFiltros() {
+      fechaInput.value = "";
+      vendedorInput.value = "";
+      productoInput.value = "";
+      actualizarIndicadoresFiltros(); // Actualizar indicadores
+      cargarHistorial(); // Recargar sin filtros
+    }
+
+    // Funciones del modal
+    const modal = document.getElementById("modalDetalle");
+    const btnCerrarModal = document.getElementById("btnCerrarModal");
+
+    function abrirModal() {
+      modal.classList.remove("hidden");
+    }
+
+    function cerrarModal() {
+      modal.classList.add("hidden");
+    }    // Event listeners del modal
+    btnCerrarModal.addEventListener("click", cerrarModal);
+    
+    // Opcional: cerrar modal al hacer clic fuera (puedes comentar esta línea si no quieres esta funcionalidad)
+    // modal.addEventListener("click", (e) => {
+    //   if (e.target === modal) cerrarModal();
+    // });
+
+    // Cerrar modal con tecla Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+        cerrarModal();
+      }
+    });
+
+    // Función para cargar y mostrar los detalles de una venta
+    async function verDetallesVenta(transaccionId) {
+      try {
+        const resp = await fetch(`/ventas/transacciones/${transaccionId}/detalle/`, {
+          method: "GET",
+          headers
+        });
+
+        if (!resp.ok) {
+          throw new Error("No se pudieron cargar los detalles de la venta");
+        }
+
+        const detalle = await resp.json();
+        console.log("Detalles de la venta:", detalle);
+
+        // Llenar información general
+        document.getElementById("modalTransaccionId").textContent = detalle.id;
+        document.getElementById("modalEstado").textContent = detalle.estado;
+        document.getElementById("modalFecha").textContent = detalle.fecha_confirmacion_local || "No disponible";
+        document.getElementById("modalCantidadProductos").textContent = detalle.cantidad_productos;
+
+        // Llenar información del vendedor
+        const vendedor = detalle.vendedor;
+        document.getElementById("modalVendedorNombre").textContent = vendedor.nombre_completo || vendedor.username;
+        document.getElementById("modalVendedorUsuario").textContent = vendedor.username;
+        document.getElementById("modalVendedorRol").textContent = vendedor.role === 'ADMIN' ? 'Administrador' : 'Empleado';
+
+        // Llenar totales
+        document.getElementById("modalTotalSinDescuento").textContent = formatearMoneda(detalle.total_sin_descuento);
+        document.getElementById("modalTotalFinal").textContent = formatearMoneda(detalle.total_final);
+
+        // Manejar descuentos
+        const descuentoContainer = document.getElementById("modalDescuentoContainer");
+        const descuentoElement = document.getElementById("modalDescuento");
+        const porcentajeElement = document.getElementById("modalPorcentajeDescuento");
+
+        if (detalle.descuento_aplicado > 0 || detalle.porcentaje_descuento > 0) {
+          descuentoContainer.style.display = "block";
+          let textoDescuento = "";
+          
+          if (detalle.descuento_aplicado > 0) {
+            textoDescuento = formatearMoneda(detalle.descuento_aplicado);
+          }
+          
+          if (detalle.porcentaje_descuento > 0) {
+            if (textoDescuento) textoDescuento += " + ";
+            textoDescuento += `${detalle.porcentaje_descuento}%`;
+          }
+          
+          descuentoElement.textContent = textoDescuento;
+          
+          // Calcular el total de descuentos aplicados
+          const totalDescuentos = detalle.total_sin_descuento - detalle.total_final;
+          porcentajeElement.textContent = `Total ahorrado: ${formatearMoneda(totalDescuentos)}`;
+        } else {
+          descuentoContainer.style.display = "none";
+        }
+
+        // Llenar tabla de productos
+        const tablaProductos = document.getElementById("modalProductosLista");
+        tablaProductos.innerHTML = "";
+
+        detalle.items.forEach(item => {
+          const fila = document.createElement("tr");
+          fila.className = "hover:bg-gray-50";
+          
+          const estadoProducto = item.producto_activo ? 
+            '<span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">Activo</span>' :
+            '<span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">Eliminado</span>';
+
+          fila.innerHTML = `
+            <td class="px-4 py-3 text-sm text-gray-900">${item.producto_codigo || 'N/A'}</td>
+            <td class="px-4 py-3 text-sm text-gray-900">${item.producto_nombre}</td>
+            <td class="px-4 py-3 text-sm text-gray-900 text-center">${item.cantidad}</td>
+            <td class="px-4 py-3 text-sm text-gray-900 text-right">${formatearMoneda(item.precio_unitario)}</td>
+            <td class="px-4 py-3 text-sm text-gray-900 text-right font-medium">${formatearMoneda(item.subtotal)}</td>
+            <td class="px-4 py-3 text-center">${estadoProducto}</td>
+          `;
+          
+          tablaProductos.appendChild(fila);
+        });
+
+        abrirModal();
+
+      } catch (err) {
+        console.error("Error al cargar detalles:", err);
+        alert("Error al cargar los detalles de la venta. Por favor, intente nuevamente.");
+      }
+    }
+
+    // Event listener para los botones "Ver Detalles"
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("btnVerDetalles")) {
+        const transaccionId = e.target.getAttribute("data-id");
+        verDetallesVenta(transaccionId);
+      }
+    });    // eventos
+    btnFiltrar.addEventListener("click", cargarHistorial);
+    btnLimpiarFiltros.addEventListener("click", limpiarFiltros);
+    
+    // Permitir filtrar con Enter en los campos de texto
+    [fechaInput, vendedorInput, productoInput].forEach(input => {
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          cargarHistorial();
+        }
+      });
+    });
+    
+    document.addEventListener("DOMContentLoaded", async () => {
+      await initializeNavbar();
+      cargarHistorial();
+    });
+
+    // Función para inicializar el navbar con información del usuario y control de roles
+    async function initializeNavbar() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/";
+        return;
+      }
+
+      try {
+        const resp = await fetch(`/ventas/user/me/`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (!resp.ok) {
+          localStorage.removeItem("token");
+          window.location.href = "/";
+          return;
+        }
+        
+        const user = await resp.json();
+          // Mostrar información del usuario
+        const fullName = `${user.first_name} ${user.last_name}`.trim();
+        const displayName = fullName || user.username;
+        const roleName = user.role === 'ADMIN' ? 'Administrador' : 'Empleado';
+        
+        document.getElementById("userInfo").textContent = `${displayName} (${roleName})`;
+        
+        // Controlar visibilidad de enlaces según el rol
+        if (user.role === 'EMPLOYEE') {
+          // Los empleados no pueden ver inventario ni trabajadores
+          const inventarioLink = document.getElementById("inventarioLink");
+          const trabajadoresLink = document.getElementById("trabajadoresLink");
+          const inventarioLinkMobile = document.getElementById("inventarioLinkMobile");
+          const trabajadoresLinkMobile = document.getElementById("trabajadoresLinkMobile");
+          
+          if (inventarioLink) inventarioLink.style.display = 'none';
+          if (trabajadoresLink) trabajadoresLink.style.display = 'none';
+          if (inventarioLinkMobile) inventarioLinkMobile.style.display = 'none';
+          if (trabajadoresLinkMobile) trabajadoresLinkMobile.style.display = 'none';
+        }
+      } catch (err) {
+        console.error("Error al verificar usuario:", err);
+        window.location.href = "/";
+      }
+    }
+
+    // Función para actualizar los indicadores de filtros activos
+    function actualizarIndicadoresFiltros() {
+      const filtrosActivosDiv = document.getElementById("filtrosActivos");
+      const listaFiltros = document.getElementById("listaFiltros");
+      
+      // Limpiar lista actual
+      listaFiltros.innerHTML = "";
+      
+      const filtros = [];
+      
+      // Verificar cada filtro
+      if (fechaInput.value) {
+        filtros.push({
+          tipo: "Fecha",
+          valor: new Date(fechaInput.value).toLocaleDateString('es-CL')
+        });
+      }
+      
+      if (vendedorInput.value.trim()) {
+        filtros.push({
+          tipo: "Vendedor",
+          valor: vendedorInput.value.trim()
+        });
+      }
+      
+      if (productoInput.value.trim()) {
+        filtros.push({
+          tipo: "Producto",
+          valor: productoInput.value.trim()
+        });
+      }
+      
+      if (filtros.length > 0) {
+        // Mostrar indicadores
+        filtrosActivosDiv.classList.remove("hidden");
+        
+        filtros.forEach(filtro => {
+          const badge = document.createElement("span");
+          badge.className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800";
+          badge.innerHTML = `${filtro.tipo}: ${filtro.valor}`;
+          listaFiltros.appendChild(badge);
+        });
+      } else {
+        // Ocultar indicadores si no hay filtros
+        filtrosActivosDiv.classList.add("hidden");
+      }
+    }
+  </script>
+</body>
+</html>
