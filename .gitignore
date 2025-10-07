@@ -1,0 +1,22 @@
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.idx
+*.ilg
+*.ind
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+
+# Generated PDFs from LaTeX (original PDFs should be tracked)
+# We'll only ignore the generated one, not the original
+Informe_2_Arquitectura_de_Software.pdf
