@@ -7,6 +7,7 @@
 \usepackage{enumitem}
 \usepackage{titlesec}
 \usepackage{graphicx}
+\graphicspath{{./}{docs/}}
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{parskip}
@@ -32,7 +33,7 @@
 % Header and footer
 \pagestyle{fancy}
 \fancyhf{}
-\rhead{Informe 2 de proyecto}
+\rhead{Informe 3 de proyecto}
 \lhead{Arquitectura de Software}
 \rfoot{\thepage}
 
@@ -47,7 +48,7 @@
     \centering
     \vspace*{2cm}
     
-    {\huge\bfseries Informe 2 de proyecto\par}
+    {\huge\bfseries Informe 3 de proyecto\par}
     \vspace{2cm}
     
     {\Large\bfseries Integrantes:\par}
@@ -73,7 +74,7 @@
     
     {\Large\bfseries Fecha de Entrega:\par}
     \vspace{0.3cm}
-    {\large 2025-09-12\par}
+    {\large 2025-10-17\par}
     
     \vfill
 \end{titlepage}
@@ -129,7 +130,7 @@ El sistema está dirigido a los colaboradores internos de la organización y def
     
     \item \textbf{Acceso y comunicación:} aplicación web responsive con login institucional y recuperación de cuenta; comunicaciones por notificación en app y correo.
     
-    \item \textbf{Arquitectura y protocolos:} arquitectura en capas con API REST; frontend, API y base de datos separadas; todo tráfico por conexiones seguras con cifrado vigente; correo autenticado; colas para tareas diferidas.
+    \item \textbf{Arquitectura y protocolos:} arquitectura SOA; todo tráfico por conexiones seguras con cifrado vigente; correo autenticado; colas para tareas diferidas.
     
     \item \textbf{Geolocalización y riesgos:} geolocalización opcional con consentimiento (uso de permisos de navegador o ingreso manual con pin en mapa).
     
@@ -150,9 +151,9 @@ El sistema está dirigido a los colaboradores internos de la organización y def
 
 \textbf{Riesgos y mitigación:} copias de seguridad, reintentos de conexión.
 
-\subsection{Trazabilidad RF$\leftrightarrow$Objetivos}
+\subsection{Trazabilidad RF\texorpdfstring{$\leftrightarrow$}{↔}Objetivos}
 
-\begin{itemize}[label=--]
+\begin{itemize}
     \item RF Autenticación y roles $\rightarrow$ Objetivo de control de acceso.
     \item RF Gestión de tickets $\rightarrow$ Objetivo de gestión y trazabilidad.
     \item RF Asignación $\rightarrow$ Objetivo de resolución eficiente.
@@ -166,20 +167,67 @@ El sistema está dirigido a los colaboradores internos de la organización y def
 
 \section{Modelo de Datos y Persistencia}
 
-\textbf{Mecanismo de Persistencia:} Para el almacenamiento de los datos se utilizará un sistema de gestión de bases de datos relacional (RDBMS). Esta elección se debe a la naturaleza estructurada de los datos, la necesidad de mantener la integridad referencial entre entidades como tickets, usuarios y comentarios, y las capacidades transaccionales que ofrece.
+	extbf{Mecanismo de Persistencia:} Para el almacenamiento de los datos se utilizará PostgreSQL como sistema de gestión de bases de datos relacional (RDBMS). Esta elección se debe a la naturaleza estructurada de los datos, la necesidad de mantener la integridad referencial entre entidades como tickets, usuarios y comentarios, y las capacidades transaccionales, de escalabilidad y de extensiones analíticas que ofrece PostgreSQL.
 
 \subsection{Entidades principales}
 
 \begin{itemize}
-    \item \textbf{Tickets:} ID (int pk, autoincrement); Título (varchar(120) not null); Descripción (text not null); categoria\_id (int fk$\rightarrow$categorias.id, ON DELETE RESTRICT); Prioridad (enum: BAJA, MEDIA, ALTA, CRITICA); Estado (enum: NUEVO, EN\_PROGRESO, RESUELTO, CERRADO); Fecha creación (datetime default CURRENT\_TIMESTAMP); Fecha cierre (datetime null); solicitante\_id (int fk$\rightarrow$usuarios.id, ON DELETE RESTRICT); ejecutivo\_id (int fk$\rightarrow$usuarios.id, ON DELETE SET NULL); Índices: (estado, prioridad), categoria\_id, solicitante\_id, ejecutivo\_id.
-    
-    \item \textbf{Usuarios:} ID (int pk, autoincrement); Nombre (varchar(120) not null); Email (varchar(120) unique not null); password\_hash (char(60) not null); Rol (enum: ADMIN, COORDINADOR, USUARIO); Fecha creación (datetime default CURRENT\_TIMESTAMP); Activo (tinyint(1) default 1).
-    
-    \item \textbf{Categorías:} ID (int pk, autoincrement); Nombre (varchar(80) unique not null); Descripción (text null).
-    
-    \item \textbf{Comentarios:} ID (int pk, autoincrement); Contenido (text not null); Fecha creación (datetime default CURRENT\_TIMESTAMP); ticket\_id (int fk$\rightarrow$tickets.id, ON DELETE CASCADE); usuario\_id (int fk$\rightarrow$usuarios.id, ON DELETE SET NULL); Índice: ticket\_id.
-    
-    \item \textbf{Adjuntos:} ID (int pk, autoincrement); Nombre (varchar(120) not null); Ruta (varchar(255) not null); Tipo (varchar(100) not null); Tamaño (int unsigned null); Checksum (varchar(64) null); Fecha subida (datetime default CURRENT\_TIMESTAMP); ticket\_id (int fk$\rightarrow$tickets.id, ON DELETE CASCADE); usuario\_id (int fk$\rightarrow$usuarios.id, ON DELETE SET NULL); Índice: ticket\_id.
+    \item \textbf{Tickets:}
+    \begin{itemize}[left=1.5em,nosep]
+        \item ID (int pk, autoincrement).
+        \item Título (varchar(120) not null).
+        \item Descripción (text not null).
+        \item categoria\_id (int fk$\rightarrow$categorias.id, ON DELETE RESTRICT).
+        \item Prioridad (enum: BAJA, MEDIA, ALTA, CRITICA).
+        \item Estado (enum: NUEVO, EN\_PROGRESO, RESUELTO, CERRADO).
+        \item Fecha creación (datetime default CURRENT\_TIMESTAMP).
+        \item Fecha cierre (datetime null).
+        \item solicitante\_id (int fk$\rightarrow$usuarios.id, ON DELETE RESTRICT).
+        \item ejecutivo\_id (int fk$\rightarrow$usuarios.id, ON DELETE SET NULL).
+        \item Índices: (estado, prioridad), categoria\_id, solicitante\_id, ejecutivo\_id.
+    \end{itemize}
+
+    \item \textbf{Usuarios:}
+    \begin{itemize}[left=1.5em,nosep]
+        \item ID (int pk, autoincrement).
+        \item Nombre (varchar(120) not null).
+        \item Email (varchar(120) unique not null).
+        \item password\_hash (char(60) not null).
+        \item Rol (enum: ADMIN, COORDINADOR, USUARIO).
+        \item Fecha creación (datetime default CURRENT\_TIMESTAMP).
+        \item Activo (tinyint(1) default 1).
+    \end{itemize}
+
+    \item \textbf{Categorías:}
+    \begin{itemize}[left=1.5em,nosep]
+        \item ID (int pk, autoincrement).
+        \item Nombre (varchar(80) unique not null).
+        \item Descripción (text null).
+    \end{itemize}
+
+    \item \textbf{Comentarios:}
+    \begin{itemize}[left=1.5em,nosep]
+        \item ID (int pk, autoincrement).
+        \item Contenido (text not null).
+        \item Fecha creación (datetime default CURRENT\_TIMESTAMP).
+        \item ticket\_id (int fk$\rightarrow$tickets.id, ON DELETE CASCADE).
+        \item usuario\_id (int fk$\rightarrow$usuarios.id, ON DELETE SET NULL).
+        \item Índice: ticket\_id.
+    \end{itemize}
+
+    \item \textbf{Adjuntos:}
+    \begin{itemize}[left=1.5em,nosep]
+        \item ID (int pk, autoincrement).
+        \item Nombre (varchar(120) not null).
+        \item Ruta (varchar(255) not null).
+        \item Tipo (varchar(100) not null).
+        \item Tamaño (int unsigned null).
+        \item Checksum (varchar(64) null).
+        \item Fecha subida (datetime default CURRENT\_TIMESTAMP).
+        \item ticket\_id (int fk$\rightarrow$tickets.id, ON DELETE CASCADE).
+        \item usuario\_id (int fk$\rightarrow$usuarios.id, ON DELETE SET NULL).
+        \item Índice: ticket\_id.
+    \end{itemize}
 \end{itemize}
 
 \section{Arquitectura del Sistema}
@@ -207,20 +255,20 @@ Se describen las interfaces de comunicación (APIs) para cada servicio, especifi
 
 \begin{itemize}
     \item \textbf{POST /api/auth/login}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Autentica a un usuario con su email y contraseña.
         \item RF Satisfecho: Autenticación y roles.
         \item RNF Considerado: Seguridad (transmite credenciales sobre conexiones seguras).
     \end{itemize}
     
     \item \textbf{POST /api/auth/logout}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Cierra la sesión del usuario actual.
         \item RF Satisfecho: Autenticación y roles.
     \end{itemize}
     
     \item \textbf{POST /api/auth/recover}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Inicia el proceso de recuperación de contraseña.
         \item RF Satisfecho: Autenticación y roles.
     \end{itemize}
@@ -230,43 +278,43 @@ Se describen las interfaces de comunicación (APIs) para cada servicio, especifi
 
 \begin{itemize}
     \item \textbf{POST /api/tickets}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Crea un nuevo ticket.
         \item RF Satisfecho: Gestión de tickets.
     \end{itemize}
     
     \item \textbf{GET /api/tickets}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Obtiene una lista paginada y filtrada de tickets.
         \item RF Satisfecho: Listado y filtros.
     \end{itemize}
     
     \item \textbf{GET /api/tickets/\{id\}}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Obtiene los detalles completos de un ticket específico.
         \item RF Satisfecho: Gestión de tickets.
     \end{itemize}
     
     \item \textbf{PUT /api/tickets/\{id\}}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Actualiza la información de un ticket (estado, prioridad, asignado, etc.).
         \item RF Satisfecho: Gestión de tickets.
     \end{itemize}
     
     \item \textbf{POST /api/tickets/\{id\}/comments}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Agrega un nuevo comentario a un ticket.
         \item RF Satisfecho: Gestión de tickets.
     \end{itemize}
     
     \item \textbf{POST /api/tickets/\{id\}/attachments}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Sube un archivo adjunto a un ticket.
         \item RF Satisfecho: Gestión de tickets.
     \end{itemize}
     
     \item \textbf{GET /api/reports/summary}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Genera el reporte resumido de tickets por categoría y período.
         \item RF Satisfecho: Reporte resumen.
         \item RNF Considerado: Seguridad (acceso restringido por rol).
@@ -279,14 +327,14 @@ Este servicio no expone una API pública para el cliente web, sino que se comuni
 
 \begin{itemize}
     \item \textbf{Evento: ticket.created}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Se activa al crear un ticket. El servicio envía una notificación por correo al solicitante.
         \item RF Satisfecho: Notificaciones.
         \item RNF Considerado: Disponibilidad (la cola con reintentos mitiga caídas del servidor de correo).
     \end{itemize}
     
     \item \textbf{Evento: ticket.assigned}
-    \begin{itemize}[label=--]
+    \begin{itemize}
         \item Descripción: Se activa al asignar un ticket a un coordinador. El servicio notifica al usuario asignado.
         \item RF Satisfecho: Notificaciones.
     \end{itemize}
@@ -296,12 +344,18 @@ Este servicio no expone una API pública para el cliente web, sino que se comuni
 
 \subsection{Imágenes}
 
-% Placeholder for images if they are extracted from the PDF
-% \begin{figure}[h]
-%     \centering
-%     \includegraphics[width=\textwidth]{image.png}
-%     \caption{Descripción de la imagen}
-%     \label{fig:imagen}
-% \end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img5.jpg}
+    \caption{Modelo entidad-relación}
+    \label{fig:mer}
+\end{figure}
+% REVISAR SI LAS IMAGENES DESCRIBEN CORRECTAMENTE EL MODELO DE DATOS
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img9.jpg}
+    \caption{Diagrama lógico con definición de tablas y relaciones}
+    \label{fig:logical}
+\end{figure}
 
 \end{document}
