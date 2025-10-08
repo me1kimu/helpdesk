@@ -864,7 +864,7 @@
         }
 
         try {
-          const resp = await fetch(`/ventas/user/me/`, {
+          const resp = await fetch(`/api/auth/me`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
           
@@ -876,11 +876,10 @@
           
           const user = await resp.json();
           
-          // Mostrar información del usuario
-          document.getElementById("userInfo").textContent = `${user.first_name} ${user.last_name} (${user.role})`;
+          const displayName = user.full_name || user.email || "Usuario";
+          document.getElementById("userInfo").textContent = `${displayName} (${user.role})`;
           
-          // Si es empleado, mostrar mensaje de acceso denegado
-          if (user.role === 'EMPLOYEE') {
+          if (user.role !== 'ADMIN' && user.role !== 'COORDINADOR') {
             document.getElementById("accessDenied").classList.remove("hidden");
             return;
           }

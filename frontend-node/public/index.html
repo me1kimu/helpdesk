@@ -13,11 +13,11 @@
       <h2 class="text-center text-2xl font-semibold text-gray-800 mb-6">Iniciar Sesión</h2>
       <form id="formLogin" class="space-y-4">
         <div>
-          <label for="inputUsuario" class="block text-sm font-medium text-gray-700">Usuario</label>
+          <label for="inputCorreo" class="block text-sm font-medium text-gray-700">Correo electrónico</label>
           <input
-            id="inputUsuario"
-            name="username"
-            type="text"
+            id="inputCorreo"
+            name="email"
+            type="email"
             required
             class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -53,41 +53,36 @@
       formLogin.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const username = document.getElementById("inputUsuario").value.trim();
+        const email = document.getElementById("inputCorreo").value.trim();
         const password = document.getElementById("inputPassword").value;
 
-        if (!username || !password) {
+        if (!email || !password) {
           alert("Complete ambos campos.");
           return;
         }
 
         try {
-          const resp = await fetch(`/ventas/user/login/`, {
+          const resp = await fetch(`/api/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ email, password }),
           });
           if (!resp.ok) {
             const errorJson = await resp.json();
             alert("Error: " + (errorJson.detail || JSON.stringify(errorJson)));
             return;
-          }          const data = await resp.json();
+          }
+          const data = await resp.json();
           // Guardar el token en localStorage para usar en otras páginas
           localStorage.setItem("token", data.access);
           if (data.refresh) {
             localStorage.setItem("refresh_token", data.refresh);
           }
           
-          // Decodificar el token para obtener información del usuario
-          try {
-            const tokenPayload = JSON.parse(atob(data.access.split('.')[1]));
-            localStorage.setItem("user_info", JSON.stringify({
-              username: tokenPayload.username,
-              role: tokenPayload.role,
-              full_name: tokenPayload.full_name
-            }));
-          } catch (err) {
-            console.error("Error al decodificar token:", err);
+          if (data.user) {
+            localStorage.setItem("user_info", JSON.stringify(data.user));
+          } else {
+            localStorage.removeItem("user_info");
           }
           
           // Redirigir al dashboard

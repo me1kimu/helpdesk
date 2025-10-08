@@ -58,7 +58,7 @@
     </script>
     <!-- ================================ -->    <!-- CONTENIDO: GESTIÓN DE USUARIOS -->
     <main class="max-w-7xl mx-auto p-6">
-      <div class="flex justify-between items-center mb-6">
+      <div id="adminHeader" class="flex justify-between items-center mb-6 hidden">
         <h1 class="text-2xl font-semibold text-gray-800">Gestión de Usuarios</h1>
         <button id="btnNuevoUsuario" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
           Nuevo Usuario
@@ -66,12 +66,11 @@
       </div>
 
       <!-- Tabla de usuarios -->
-      <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div id="adminTableWrapper" class="bg-white shadow rounded-lg overflow-hidden hidden">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre completo</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
@@ -88,7 +87,6 @@
       <div id="infoEmpleado" class="bg-white shadow rounded-lg p-6 hidden">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">Tu Información</h2>
         <p class="text-gray-600"><strong>ID:</strong> <span id="userId">—</span></p>
-        <p class="text-gray-600 mt-2"><strong>Nombre de Usuario:</strong> <span id="userName">—</span></p>
         <p class="text-gray-600 mt-2"><strong>Nombre Completo:</strong> <span id="userFullName">—</span></p>
         <p class="text-gray-600 mt-2"><strong>Correo Electrónico:</strong> <span id="userEmail">—</span></p>
         <p class="text-gray-600 mt-2"><strong>Rol:</strong> <span id="userRole">—</span></p>
@@ -102,26 +100,26 @@
         <form id="formUsuario">
           <input type="hidden" id="usuarioId" />
           <div class="mb-4">
-            <label for="inputUsername" class="block text-sm font-medium text-gray-700">Nombre de Usuario</label>
-            <input type="text" id="inputUsername" required class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label for="inputFullName" class="block text-sm font-medium text-gray-700">Nombre completo</label>
+            <input type="text" id="inputFullName" required class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div class="mb-4">
-            <label for="inputEmail" class="block text-sm font-medium text-gray-700">Email</label>
-            <input type="email" id="inputEmail" class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div class="mb-4">
-            <label for="inputFirstName" class="block text-sm font-medium text-gray-700">Nombre</label>
-            <input type="text" id="inputFirstName" class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div class="mb-4">
-            <label for="inputLastName" class="block text-sm font-medium text-gray-700">Apellido</label>
-            <input type="text" id="inputLastName" class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label for="inputEmail" class="block text-sm font-medium text-gray-700">Correo electrónico</label>
+            <input type="email" id="inputEmail" required class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div class="mb-4">
             <label for="inputRole" class="block text-sm font-medium text-gray-700">Rol</label>
             <select id="inputRole" required class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="ADMIN">Administrador</option>
-              <option value="EMPLOYEE">Empleado</option>
+              <option value="COORDINADOR">Coordinador</option>
+              <option value="USUARIO">Agente</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label for="inputIsActive" class="block text-sm font-medium text-gray-700">Estado</label>
+            <select id="inputIsActive" required class="mt-1 w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="true">Activo</option>
+              <option value="false">Inactivo</option>
             </select>
           </div>
           <div id="passwordFields">
@@ -140,27 +138,52 @@
           </div>
         </form>
       </div>
-    </div>    <script>
-  // Same-origin mock API (Node server)
-  const BACKEND_URL = "";
+    </div>
+    <script>
+      const API_USERS = "/api/users";
+      const MANAGER_ROLES = ["ADMIN", "COORDINADOR"];
       let currentUser = null;
       let isEditing = false;
 
       document.addEventListener("DOMContentLoaded", async () => {
         await loadCurrentUser();
-        
-        if (currentUser && currentUser.role === 'ADMIN') {
+
+        if (!currentUser) return;
+
+        const isManager = MANAGER_ROLES.includes(currentUser.role);
+
+        if (isManager) {
+          showAdminSections();
           await loadUsers();
         } else {
-          // Si es empleado, mostrar solo su información
           showEmployeeInfo();
         }
 
-        // Event listeners
         document.getElementById("btnNuevoUsuario")?.addEventListener("click", openCreateModal);
-        document.getElementById("btnCancelar").addEventListener("click", closeModal);
-        document.getElementById("formUsuario").addEventListener("submit", handleFormSubmit);
+        document.getElementById("btnCancelar")?.addEventListener("click", closeModal);
+        document.getElementById("formUsuario")?.addEventListener("submit", handleFormSubmit);
       });
+
+      function showAdminSections() {
+        document.getElementById("adminHeader").classList.remove("hidden");
+        document.getElementById("adminTableWrapper").classList.remove("hidden");
+      }
+
+      function hideAdminSections() {
+        document.getElementById("adminHeader").classList.add("hidden");
+        document.getElementById("adminTableWrapper").classList.add("hidden");
+      }
+
+      function mapRole(role) {
+        switch (role) {
+          case "ADMIN":
+            return "Administrador";
+          case "COORDINADOR":
+            return "Coordinador";
+          default:
+            return "Agente";
+        }
+      }
 
       async function loadCurrentUser() {
         const token = localStorage.getItem("token");
@@ -170,22 +193,21 @@
         }
 
         try {
-          const resp = await fetch(`/ventas/user/me/`, {
-            headers: { "Authorization": `Bearer ${token}` }
+          const resp = await fetch(`/api/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
           });
-          
+
           if (!resp.ok) {
             localStorage.removeItem("token");
             window.location.href = "/";
             return;
           }
-          
+
           currentUser = await resp.json();
-          
-          // Mostrar información del usuario en el navbar
-          document.getElementById("userInfo").textContent = `${currentUser.first_name} ${currentUser.last_name} (${currentUser.role})`;
-        } catch (err) {
-          console.error("Error al cargar usuario actual:", err);
+          const displayName = currentUser.full_name || currentUser.email || "Usuario";
+          document.getElementById("userInfo").textContent = `${displayName} (${currentUser.role})`;
+        } catch (error) {
+          console.error("Error al cargar usuario actual:", error);
           window.location.href = "/";
         }
       }
@@ -193,19 +215,19 @@
       async function loadUsers() {
         const token = localStorage.getItem("token");
         try {
-          const resp = await fetch(`/ventas/usuarios/`, {
-            headers: { "Authorization": `Bearer ${token}` }
+          const resp = await fetch(API_USERS, {
+            headers: { Authorization: `Bearer ${token}` },
           });
-          
+
           if (!resp.ok) {
             console.error("Error al cargar usuarios");
             return;
           }
-          
+
           const users = await resp.json();
           renderUsersTable(users);
-        } catch (err) {
-          console.error("Error al cargar usuarios:", err);
+        } catch (error) {
+          console.error("Error al cargar usuarios:", error);
         }
       }
 
@@ -213,15 +235,21 @@
         const tbody = document.getElementById("tablaUsuarios");
         tbody.innerHTML = "";
 
-        users.forEach(user => {
+        users.forEach((user) => {
           const row = document.createElement("tr");
+          const editButton = `<button onclick="editUser(${user.id})" class="text-blue-600 hover:text-blue-900">Editar</button>`;
+          let statusButton = "";
+          if (user.id !== currentUser.id) {
+            statusButton = user.is_active
+              ? `<button onclick="deactivateUser(${user.id})" class="text-red-600 hover:text-red-900 ml-3">Desactivar</button>`
+              : `<button onclick="activateUser(${user.id})" class="text-green-600 hover:text-green-800 ml-3">Reactivar</button>`;
+          }
           row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.username}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.first_name} ${user.last_name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.full_name}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.email || '-'}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              <span class="px-2 py-1 text-xs font-medium rounded-full ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
-                ${user.role === 'ADMIN' ? 'Administrador' : 'Empleado'}
+              <span class="px-2 py-1 text-xs font-medium rounded-full ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : user.role === 'COORDINADOR' ? 'bg-indigo-100 text-indigo-800' : 'bg-blue-100 text-blue-800'}">
+                ${mapRole(user.role)}
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -229,25 +257,19 @@
                 ${user.is_active ? 'Activo' : 'Inactivo'}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button onclick="editUser(${user.id})" class="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
-              ${user.id !== currentUser.id ? `<button onclick="deleteUser(${user.id})" class="text-red-600 hover:text-red-900">Eliminar</button>` : ''}
-            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${editButton}${statusButton}</td>
           `;
           tbody.appendChild(row);
         });
       }
 
       function showEmployeeInfo() {
-        document.querySelector("h1").textContent = "Mi Información";
-        document.querySelector("main > div").style.display = "none";
+        hideAdminSections();
         document.getElementById("infoEmpleado").classList.remove("hidden");
-        
         document.getElementById("userId").textContent = currentUser.id;
-        document.getElementById("userName").textContent = currentUser.username;
-        document.getElementById("userFullName").textContent = `${currentUser.first_name} ${currentUser.last_name}`.trim() || '-';
-        document.getElementById("userEmail").textContent = currentUser.email || '-';
-        document.getElementById("userRole").textContent = currentUser.role === 'ADMIN' ? 'Administrador' : 'Empleado';
+        document.getElementById("userFullName").textContent = currentUser.full_name || "-";
+        document.getElementById("userEmail").textContent = currentUser.email || "-";
+        document.getElementById("userRole").textContent = mapRole(currentUser.role);
       }
 
       function openCreateModal() {
@@ -255,67 +277,99 @@
         document.getElementById("modalTitulo").textContent = "Nuevo Usuario";
         document.getElementById("formUsuario").reset();
         document.getElementById("usuarioId").value = "";
-        document.getElementById("passwordFields").style.display = "block";
+        document.getElementById("inputRole").value = "USUARIO";
+        document.getElementById("inputIsActive").value = "true";
+        const passwordFields = document.getElementById("passwordFields");
+        passwordFields.classList.remove("hidden");
         document.getElementById("inputPassword").required = true;
         document.getElementById("inputPasswordConfirm").required = true;
+        document.getElementById("inputPassword").value = "";
+        document.getElementById("inputPasswordConfirm").value = "";
         document.getElementById("modalUsuario").classList.remove("hidden");
       }
 
       async function editUser(userId) {
         isEditing = true;
         const token = localStorage.getItem("token");
-        
+
         try {
-          const resp = await fetch(`/ventas/usuarios/${userId}/`, {
-            headers: { "Authorization": `Bearer ${token}` }
+          const resp = await fetch(`${API_USERS}/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
           });
-          
+
           if (!resp.ok) {
             alert("Error al cargar datos del usuario");
             return;
           }
-          
+
           const user = await resp.json();
-          
+
           document.getElementById("modalTitulo").textContent = "Editar Usuario";
           document.getElementById("usuarioId").value = user.id;
-          document.getElementById("inputUsername").value = user.username;
+          document.getElementById("inputFullName").value = user.full_name || "";
           document.getElementById("inputEmail").value = user.email || "";
-          document.getElementById("inputFirstName").value = user.first_name || "";
-          document.getElementById("inputLastName").value = user.last_name || "";
           document.getElementById("inputRole").value = user.role;
-          document.getElementById("passwordFields").style.display = "none";
+          document.getElementById("inputIsActive").value = user.is_active ? "true" : "false";
+          const passwordFields = document.getElementById("passwordFields");
+          passwordFields.classList.add("hidden");
           document.getElementById("inputPassword").required = false;
           document.getElementById("inputPasswordConfirm").required = false;
+          document.getElementById("inputPassword").value = "";
+          document.getElementById("inputPasswordConfirm").value = "";
           document.getElementById("modalUsuario").classList.remove("hidden");
-        } catch (err) {
-          console.error("Error al cargar usuario:", err);
+        } catch (error) {
+          console.error("Error al cargar usuario:", error);
           alert("Error al cargar datos del usuario");
         }
       }
 
-      async function deleteUser(userId) {
-        if (!confirm("¿Estás seguro de que quieres eliminar este usuario?")) {
+      async function deactivateUser(userId) {
+        if (!confirm("¿Estás seguro de que quieres desactivar este usuario?")) {
           return;
         }
 
         const token = localStorage.getItem("token");
-        
+
         try {
-          const resp = await fetch(`/ventas/usuarios/${userId}/`, {
+          const resp = await fetch(`${API_USERS}/${userId}`, {
             method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
-          
+
           if (resp.ok) {
             await loadUsers();
           } else {
-            const error = await resp.json();
-            alert("Error al eliminar usuario: " + (error.error || "Error desconocido"));
+            const error = await resp.json().catch(() => null);
+            alert("Error al desactivar usuario" + (error?.detail ? `: ${error.detail}` : ""));
           }
-        } catch (err) {
-          console.error("Error al eliminar usuario:", err);
-          alert("Error al eliminar usuario");
+        } catch (error) {
+          console.error("Error al desactivar usuario:", error);
+          alert("Error al desactivar usuario");
+        }
+      }
+
+      async function activateUser(userId) {
+        const token = localStorage.getItem("token");
+
+        try {
+          const resp = await fetch(`${API_USERS}/${userId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ is_active: true }),
+          });
+
+          if (resp.ok) {
+            await loadUsers();
+          } else {
+            const error = await resp.json().catch(() => null);
+            alert("Error al reactivar usuario" + (error?.detail ? `: ${error.detail}` : ""));
+          }
+        } catch (error) {
+          console.error("Error al reactivar usuario:", error);
+          alert("Error al reactivar usuario");
         }
       }
 
@@ -325,29 +379,27 @@
 
       async function handleFormSubmit(e) {
         e.preventDefault();
-        
+
         const token = localStorage.getItem("token");
         const userId = document.getElementById("usuarioId").value;
-        
+
         const formData = {
-          username: document.getElementById("inputUsername").value,
+          full_name: document.getElementById("inputFullName").value,
           email: document.getElementById("inputEmail").value,
-          first_name: document.getElementById("inputFirstName").value,
-          last_name: document.getElementById("inputLastName").value,
           role: document.getElementById("inputRole").value,
+          is_active: document.getElementById("inputIsActive").value === "true",
         };
 
         if (!isEditing) {
           const password = document.getElementById("inputPassword").value;
           const passwordConfirm = document.getElementById("inputPasswordConfirm").value;
-          
+
           if (password !== passwordConfirm) {
             alert("Las contraseñas no coinciden");
             return;
           }
-          
+
           formData.password = password;
-          formData.password_confirm = passwordConfirm;
         } else {
           const password = document.getElementById("inputPassword").value;
           if (password) {
@@ -356,30 +408,27 @@
         }
 
         try {
-          const url = isEditing 
-            ? `/ventas/usuarios/${userId}/`
-            : `/ventas/usuarios/`;
-          
+          const url = isEditing ? `${API_USERS}/${userId}` : API_USERS;
           const method = isEditing ? "PUT" : "POST";
-          
+
           const resp = await fetch(url, {
-            method: method,
+            method,
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
+              Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
           });
-          
+
           if (resp.ok) {
             closeModal();
             await loadUsers();
           } else {
-            const error = await resp.json();
-            alert("Error al guardar usuario: " + JSON.stringify(error));
+            const error = await resp.json().catch(() => null);
+            alert("Error al guardar usuario" + (error?.detail ? `: ${error.detail}` : ""));
           }
-        } catch (err) {
-          console.error("Error al guardar usuario:", err);
+        } catch (error) {
+          console.error("Error al guardar usuario:", error);
           alert("Error al guardar usuario");
         }
       }

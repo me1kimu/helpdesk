@@ -27,8 +27,8 @@ Recomendado para desarrollo rápido y sin dependencias de Django/Postgres.
 
 4. Credenciales de demo:
 
-   - admin / admin123 (rol ADMIN)
-   - trabajador / worker123 (rol EMPLOYEE)
+   - admin@helpdesk.local / admin123 (rol ADMIN)
+   - trabajador@helpdesk.local / worker123 (rol EMPLOYEE)
 
 Notas:
 - Todas las páginas consumen endpoints same-origin, servidos por Express en `src/server.js`.

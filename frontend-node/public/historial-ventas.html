@@ -401,7 +401,7 @@
       }
 
       try {
-        const resp = await fetch(`/ventas/user/me/`, {
+        const resp = await fetch(`/api/auth/me`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         
@@ -412,16 +412,13 @@
         }
         
         const user = await resp.json();
-          // Mostrar información del usuario
-        const fullName = `${user.first_name} ${user.last_name}`.trim();
-        const displayName = fullName || user.username;
-        const roleName = user.role === 'ADMIN' ? 'Administrador' : 'Empleado';
-        
+
+        const displayName = user.full_name || user.email || "Usuario";
+        const roleName = user.role === 'ADMIN' ? 'Administrador' : (user.role === 'COORDINADOR' ? 'Coordinador' : 'Usuario');
+
         document.getElementById("userInfo").textContent = `${displayName} (${roleName})`;
-        
-        // Controlar visibilidad de enlaces según el rol
-        if (user.role === 'EMPLOYEE') {
-          // Los empleados no pueden ver inventario ni trabajadores
+
+        if (user.role === 'USUARIO') {
           const inventarioLink = document.getElementById("inventarioLink");
           const trabajadoresLink = document.getElementById("trabajadoresLink");
           const inventarioLinkMobile = document.getElementById("inventarioLinkMobile");

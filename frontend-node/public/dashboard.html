@@ -151,7 +151,7 @@
         }
 
         try {
-          const respUser = await fetch(`/ventas/user/me/`, {
+          const respUser = await fetch(`/api/auth/me`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
           
@@ -168,9 +168,8 @@
           console.log("Current user loaded:", currentUser);
           
           // Mostrar información del usuario en la navbar y dashboard
-          const fullName = `${currentUser.first_name} ${currentUser.last_name}`.trim();
-          const displayName = fullName || currentUser.username;
-          const roleName = currentUser.role === 'ADMIN' ? 'Administrador' : 'Empleado';
+          const displayName = currentUser.full_name || currentUser.email || "Usuario";
+          const roleName = currentUser.role === 'ADMIN' ? 'Administrador' : (currentUser.role === 'COORDINADOR' ? 'Coordinador' : 'Usuario');
           
           document.getElementById("userInfo").textContent = `${displayName} (${roleName})`;
           document.getElementById("usuarioActual").textContent = displayName;
@@ -189,7 +188,7 @@
         if (!currentUser) return;
 
         // Si es empleado, ocultar enlaces de inventario y usuarios
-        if (currentUser.role === 'EMPLOYEE') {
+  if (currentUser.role === 'USUARIO') {
           const inventarioLink = document.getElementById("inventarioLink");
           const trabajadoresLink = document.getElementById("trabajadoresLink");
           const inventarioLinkMobile = document.getElementById("inventarioLinkMobile");
@@ -200,7 +199,7 @@
           if (inventarioLinkMobile) inventarioLinkMobile.style.display = "none";
           if (trabajadoresLinkMobile) trabajadoresLinkMobile.style.display = "none";
           
-          console.log("Access control applied for EMPLOYEE role");
+          console.log("Access control applied for USUARIO role");
         }
       }
 
@@ -293,7 +292,7 @@
           
           try {
             console.log("Fetching dashboard metrics...");
-            const resp = await fetch(`/ventas/dashboard/metrics/`, { headers });
+            const resp = await fetch(`/api/reports/dashboard/metrics`, { headers });
             console.log("Response received:", resp.status, resp.statusText);
             
             if (!resp.ok) {
@@ -344,7 +343,7 @@
         async function loadChartData(period = 'day') {
           console.log("Loading chart data for period:", period);
           try {
-            const resp = await fetch(`/ventas/metrics/chart/?period=${period}`, { headers });
+            const resp = await fetch(`/api/reports/dashboard/chart?period=${period}`, { headers });
             console.log("Chart data response:", resp.status, resp.statusText);
             
             if (!resp.ok) {

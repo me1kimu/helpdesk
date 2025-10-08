@@ -14,21 +14,18 @@
     </div>
 
     <script>
-        const BACKEND_URL = "http://localhost:8000";
-        
         document.addEventListener("DOMContentLoaded", async () => {
             const token = localStorage.getItem("token");
+            const refresh = localStorage.getItem("refresh_token");
             
-            if (token) {
+            if (refresh) {
                 try {
-                    // Intentar cerrar sesión en el backend
-                    await fetch(`${BACKEND_URL}/ventas/user/logout/`, {
+                    await fetch(`/api/auth/logout`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
-                            "Authorization": `Bearer ${token}`
                         },
-                        body: JSON.stringify({ refresh: localStorage.getItem("refresh_token") })
+                        body: JSON.stringify({ refresh })
                     });
                 } catch (err) {
                     console.error("Error al cerrar sesión en el backend:", err);

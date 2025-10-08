@@ -809,7 +809,7 @@ function mostrarModalErrorVenta(errorData) {
         }
 
         try {
-          const resp = await fetch(`/ventas/user/me/`, {
+          const resp = await fetch(`/api/auth/me`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
           
@@ -820,11 +820,10 @@ function mostrarModalErrorVenta(errorData) {
           }
             const user = await resp.json();
           
-          // Mostrar información del usuario
-          document.getElementById("userInfo").textContent = `${user.first_name} ${user.last_name} (${user.role})`;
+          const displayName = user.full_name || user.email || "Usuario";
+          document.getElementById("userInfo").textContent = `${displayName} (${user.role})`;
           
-          // Si es empleado, ocultar enlaces de inventario y usuarios
-          if (user.role === 'EMPLOYEE') {
+          if (user.role === 'USUARIO') {
             const inventarioLink = document.getElementById("inventarioLink");
             const trabajadoresLink = document.getElementById("trabajadoresLink");
             const inventarioLinkMobile = document.getElementById("inventarioLinkMobile");
