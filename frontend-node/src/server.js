@@ -13,6 +13,7 @@ import usersRouter from "./routes/users.js";
 import ventasRouter from "./routes/ventas.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { startAssignmentQueueJob } from "./jobs/assignmentQueueJob.js";
+import { startGateway, stopGateway } from "./bus/gateway.js";
 import logger from "./utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,14 @@ app.get(["/", "/login"], (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
 
+app.get("/forgot-password", (req, res) => {
+  res.sendFile(path.join(publicPath, "forgot-password.html"));
+});
+
+app.get("/reset-password", (req, res) => {
+  res.sendFile(path.join(publicPath, "reset-password.html"));
+});
+
 app.get(["/dashboard", "/tickets"], (req, res) => {
   res.sendFile(path.join(publicPath, "dashboard.html"));
 });
@@ -86,12 +95,23 @@ app.use(errorHandler);
 
 const server = app.listen(config.port, () => {
   logger.info(`Helpdesk app listening on http://localhost:${config.port}`);
+  startGateway();
 });
 
 startAssignmentQueueJob();
 
 process.on("SIGTERM", () => {
   logger.warn("Received SIGTERM. Shutting down server...");
+  stopGateway();
+  server.close(() => {
+    logger.info("HTTP server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  logger.warn("Received SIGINT. Shutting down server...");
+  stopGateway();
   server.close(() => {
     logger.info("HTTP server closed");
     process.exit(0);
