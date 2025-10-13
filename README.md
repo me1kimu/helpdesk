@@ -88,6 +88,19 @@ printf '00023gwapi{"method":"GET","path":"/health"}' | nc 127.0.0.1 5000
 
 > Nota: asegúrate de escapar las comillas correctamente o utiliza el script incluido para evitar errores de formato.
 
+### 6. Tarea de asignación automática
+
+El proceso cron que invoca `fn_process_assignment_queue` requiere una base de datos PostgreSQL disponible. Para evitar errores en entornos de desarrollo sin DB, el job se encuentra deshabilitado por defecto. Si cuentas con una instancia operativa puedes reactivarlo definiendo las siguientes variables en `frontend-node/.env` (o en tu entorno):
+
+```bash
+ASSIGNMENT_JOB_ENABLED=true
+# Opcional: ajustar el cron y el tamaño del lote
+ASSIGNMENT_JOB_SCHEDULE="*/1 * * * *"
+ASSIGNMENT_JOB_BATCH_SIZE=20
+```
+
+Cuando está habilitado, el job usa la cadena de conexión configurada en `DATABASE_URL` (o los valores `DB_*`) y registrará advertencias si no puede conectarse.
+
 ## Ejecución (modo solo-frontend con API mock)
 
 Recomendado para desarrollo rápido y sin dependencias de Django/Postgres.

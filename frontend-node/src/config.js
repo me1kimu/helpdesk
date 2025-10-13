@@ -35,6 +35,13 @@ const config = {
         ? { rejectUnauthorized: process.env.DB_SSL_REJECT === "true" }
         : false,
   },
+  jobs: {
+    assignmentQueue: {
+      enabled: process.env.ASSIGNMENT_JOB_ENABLED === "true",
+      schedule: process.env.ASSIGNMENT_JOB_SCHEDULE || "*/1 * * * *",
+      batchSize: Number(process.env.ASSIGNMENT_JOB_BATCH_SIZE || 20),
+    },
+  },
   password: {
     maxAttempts: Number(process.env.MAX_LOGIN_ATTEMPTS || 5),
     lockMinutes: Number(process.env.LOGIN_LOCK_MINUTES || 15),

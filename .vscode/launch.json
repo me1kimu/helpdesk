@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Express Server",
+      "program": "${workspaceFolder}/frontend-node/src/server.js",
+      "cwd": "${workspaceFolder}/frontend-node",
+      "console": "integratedTerminal"
+    }
+  ]
+}
