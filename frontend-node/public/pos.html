@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
           btnMinus.textContent = "-";
           btnMinus.onclick = () => {
             if (item.cantidad > 1) {
-              
+              item.cantidad--;
             } else {
               carritoItems.splice(index, 1);
             }
