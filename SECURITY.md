@@ -4,10 +4,10 @@
 
 We take security seriously and are committed to maintaining the security of ManuMarket. The following versions are currently supported with security updates:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| Latest  | :white_check_mark: |
-| < Latest| :x:                |
+| Version | Supported          | Notes                          |
+| ------- | ------------------ | ------------------------------ |
+| 5.2.x   | :white_check_mark: | Current stable release         |
+| < 5.2   | :x:                | No longer supported            |
 
 We recommend always using the latest version of the application to ensure you have the most recent security patches and updates.
 
@@ -72,7 +72,6 @@ When working with ManuMarket, please follow these security guidelines:
    - Enable CSRF protection for state-changing operations
 
 5. **Docker & Container Security**
-   - Don't run containers as root user when possible
    - Keep base images updated
    - Scan images for vulnerabilities regularly
    - Don't include sensitive data in Docker images
@@ -130,14 +129,12 @@ Regular updates to these packages are essential for maintaining security.
 - Security patches will be released as soon as possible after a vulnerability is confirmed
 - Users will be notified of security updates through GitHub releases and security advisories
 - Critical vulnerabilities will be addressed with highest priority
-- We encourage all users to subscribe to repository notifications for security updates
 
 ## Disclosure Policy
 
 - We follow responsible disclosure practices
 - Security researchers will be credited for their findings (unless they prefer to remain anonymous)
 - We will coordinate disclosure timing with reporters
-- Public disclosure will occur after a fix is available and users have had time to update
 
 ## Additional Resources
 
@@ -147,8 +144,8 @@ Regular updates to these packages are essential for maintaining security.
 
 ## Questions?
 
-If you have questions about security that are not covered in this policy, please reach out to the repository maintainers through GitHub.
+If you have questions about security that are not covered in this policy, please reach out to the repository maintainers:
 
----
-
-**Last Updated**: October 2025
+- @lucowskyx
+- @Axel193
+- @ElProConLag
