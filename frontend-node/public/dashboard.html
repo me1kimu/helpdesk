@@ -126,7 +126,7 @@
       <!-- Información adicional -->
       <div class="mt-6 bg-white p-4 rounded-lg shadow">
         <h2 class="text-gray-600 text-sm font-medium">Información Adicional</h2>
-        <p id="currentTime" class="mt-2 text-sm text-gray-800">—</p>
+  <p id="currentTimeInfo" class="mt-2 text-sm text-gray-800">—</p>
       </div>
     </main>    <script>
       // BASE URL de tu API Django
@@ -449,9 +449,14 @@
             second: '2-digit'
           });
           
-          const timeElement = document.getElementById('currentTime');
-          if (timeElement) {
-            timeElement.textContent = `Hora actual: ${timeString}`;
+          const chartTimeElement = document.getElementById('currentTime');
+          if (chartTimeElement) {
+            chartTimeElement.textContent = timeString;
+          }
+
+          const infoTimeElement = document.getElementById('currentTimeInfo');
+          if (infoTimeElement) {
+            infoTimeElement.textContent = `Hora actual: ${timeString}`;
           }
         }
 
