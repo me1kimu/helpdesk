@@ -225,7 +225,7 @@ let usuarioActual = null;
 // Función para obtener datos del usuario actual
 async function obtenerUsuarioActual() {
     try {
-        const response = await fetch('/api/usuario-actual/', {
+  const response = await fetch('/api/auth/me', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,

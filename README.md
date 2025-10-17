@@ -14,7 +14,43 @@ Repositorio para el proyecto de punto de ventas y gestión de inventario de *Man
 
 Para integrar el bus ESB se añadió un servicio "gateway" dentro del servidor Node. Este se registra en el bus con el nombre `gwapi` y reexpone cualquier endpoint HTTP del backend a través del bus.
 
-### 1. Levantar el bus
+### 1. Levantar PostgreSQL con Docker
+
+```bash
+# Opción 1: Levantar PostgreSQL en un contenedor Docker (contraseña "helpdesk" para alinear con `.env`)
+docker run -d \
+   --name helpdesk-db \
+   -e POSTGRES_PASSWORD=helpdesk \
+   -p 5432:5432 \
+   postgres:16
+
+# Esperar a que PostgreSQL esté listo (~5-10 segundos)
+sleep 10
+
+# Si ya tenías un contenedor previo con otra contraseña, elimínalo primero:
+# docker rm -f helpdesk-db
+```
+
+### 1b. Ejecutar el schema SQL
+
+```bash
+# Crear la base de datos:
+PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE helpdesk;"
+
+# Ejecutar el schema SQL:
+PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -d helpdesk -f db/schema.sql
+
+# Opcionalmente, aplica las migraciones adicionales:
+PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -d helpdesk -f db/migrations/002_assignment_and_notifications.sql
+PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -d helpdesk -f db/migrations/003_inventory_and_sales.sql
+
+# Verificar que todo está correcto:
+PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -d helpdesk -c "SELECT id, full_name, email, role FROM users ORDER BY id;"
+```
+
+**Nota**: Si PostgreSQL ya está corriendo en tu sistema, omite el paso de Docker.
+
+### 2. Levantar el bus
 
 ```
 docker compose -f docker-compose.bus.yml up -d
@@ -22,7 +58,7 @@ docker compose -f docker-compose.bus.yml up -d
 
 Por defecto expone el puerto 5000. Puedes ajustarlo con la variable `BUS_PORT`.
 
-### 2. Variables de entorno relevantes
+### 3. Variables de entorno relevantes
 
 ```
 BUS_HOST=127.0.0.1
@@ -31,7 +67,7 @@ BUS_SERVICE_NAME=gwapi
 BUS_RECONNECT_DELAY_MS=5000
 ```
 
-### 3. Flujo de trabajo
+### 4. Flujo de trabajo
 
 1. Inicia el servidor (`npm start` en `frontend-node/`).
 2. El servidor abrirá una conexión con el bus y enviará `sinitgwapi` para registrarse.
@@ -51,7 +87,7 @@ BUS_RECONNECT_DELAY_MS=5000
 
 4. El gateway ejecuta la petición HTTP contra el backend y devuelve el resultado en el frame de respuesta.
 
-### 4. Cliente de ejemplo
+### 5. Cliente de ejemplo
 
 Se añadió un script de utilidad para enviar peticiones rápidas al bus:
 
@@ -70,7 +106,7 @@ Parámetros opcionales:
 
 El script imprime la respuesta del bus, incluyendo el estado (`OK`/`NK`) y el JSON devuelto por el backend.
 
-### 5. Formato de frames
+### 6. Formato de frames
 
 El protocolo del bus utiliza un encabezado de 5 dígitos con el largo del payload seguido del contenido:
 
@@ -88,7 +124,7 @@ printf '00023gwapi{"method":"GET","path":"/health"}' | nc 127.0.0.1 5000
 
 > Nota: asegúrate de escapar las comillas correctamente o utiliza el script incluido para evitar errores de formato.
 
-### 6. Tarea de asignación automática
+### 7. Tarea de asignación automática
 
 El proceso cron que invoca `fn_process_assignment_queue` requiere una base de datos PostgreSQL disponible. Para evitar errores en entornos de desarrollo sin DB, el job se encuentra deshabilitado por defecto. Si cuentas con una instancia operativa puedes reactivarlo definiendo las siguientes variables en `frontend-node/.env` (o en tu entorno):
 

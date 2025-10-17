@@ -357,7 +357,7 @@ INSERT INTO categories (name, description) VALUES
 
 INSERT INTO users (full_name, email, password_hash, role)
 VALUES
-    ('Administrador Demo', 'admin@helpdesk.local', '$2b$12$examplehashxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'ADMIN'),
+    ('Administrador Demo', 'admin@helpdesk.local', '$2a$12$rkyzkH/nN8NdBhlmd3LXyuNohj2UGtzdX8ewad9Mb8V27G5HTwHTy', 'ADMIN'),
     ('Coordinador Demo', 'coordinador@helpdesk.local', '$2b$12$examplehashxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'COORDINADOR'),
     ('Usuario Demo', 'usuario@helpdesk.local', '$2b$12$examplehashxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'USUARIO');
 

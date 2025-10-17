@@ -110,6 +110,7 @@ describe("GatewayService", () => {
 
     const handshakeAck = Buffer.from("00007sinitOK", "utf8");
     currentSocket.emit("data", handshakeAck);
+  await new Promise((resolve) => setTimeout(resolve, 0));
 
     const originalFetch = global.fetch;
     const fetchMock = vi.fn(async () => ({
@@ -152,6 +153,141 @@ describe("GatewayService", () => {
       global.fetch = originalFetch;
     } else {
       delete global.fetch;
+    }
+  });
+
+  it("propaga solicitudes para crear tickets con cuerpo JSON y cabeceras", async () => {
+    gateway = new GatewayService();
+    gateway.start();
+    currentSocket.emit("connect");
+
+    const handshakeAck = Buffer.from("00007sinitOK", "utf8");
+    currentSocket.emit("data", handshakeAck);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const originalFetch = global.fetch;
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 201,
+      headers: {
+        get: (name) => (name === "content-type" ? "application/json" : null),
+        entries: () => [["content-type", "application/json"]][Symbol.iterator](),
+      },
+      json: async () => ({ id: 42, title: "Nuevo ticket" }),
+      text: async () => "",
+      arrayBuffer: async () => new ArrayBuffer(0),
+    }));
+    global.fetch = fetchMock;
+
+    const address = "TK001";
+    const payload = {
+      method: "POST",
+      path: "/api/tickets",
+      headers: { Authorization: "Bearer token" },
+      body: {
+        title: "Nuevo ticket",
+        description: "Descripcion",
+        categoria_id: 2,
+        priority: "ALTA",
+      },
+    };
+
+    const instruction = JSON.stringify(payload);
+    const body = `${address}${instruction}`;
+    const frame = Buffer.from(`${String(body.length).padStart(5, "0")}${body}`, "utf8");
+    currentSocket.emit("data", frame);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    try {
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url.toString()).toBe("http://127.0.0.1:3000/api/tickets");
+      expect(init.method).toBe("POST");
+      expect(init.headers.authorization).toBe("Bearer token");
+      expect(init.headers["content-type"]).toBe("application/json");
+      expect(JSON.parse(init.body)).toEqual(payload.body);
+
+      const responseFrame = currentSocket.writes.at(-1);
+      expect(responseFrame.slice(5, 10)).toBe(address);
+      const responsePayload = JSON.parse(responseFrame.slice(10));
+      expect(responsePayload.ok).toBe(true);
+      expect(responsePayload.status).toBe(201);
+      expect(responsePayload.data).toEqual({ id: 42, title: "Nuevo ticket" });
+    } finally {
+      if (originalFetch) {
+        global.fetch = originalFetch;
+      } else {
+        delete global.fetch;
+      }
+    }
+  });
+
+  it("serializa parámetros de consulta al listar tickets", async () => {
+    gateway = new GatewayService();
+    gateway.start();
+    currentSocket.emit("connect");
+
+    const handshakeAck = Buffer.from("00007sinitOK", "utf8");
+    currentSocket.emit("data", handshakeAck);
+
+    const originalFetch = global.fetch;
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name) => (name === "content-type" ? "application/json" : null),
+        entries: () => [["content-type", "application/json"]][Symbol.iterator](),
+      },
+      json: async () => ({ tickets: [] }),
+      text: async () => "",
+      arrayBuffer: async () => new ArrayBuffer(0),
+    }));
+    global.fetch = fetchMock;
+
+    const address = "TKLST";
+    const payload = {
+      method: "GET",
+      path: "/api/tickets",
+      query: {
+        status: "NUEVO",
+        categoria_id: 3,
+        priority: "ALTA",
+      },
+      headers: { Authorization: "Bearer token" },
+    };
+
+    const instruction = JSON.stringify(payload);
+    const body = `${address}${instruction}`;
+    const frame = Buffer.from(`${String(body.length).padStart(5, "0")}${body}`, "utf8");
+    currentSocket.emit("data", frame);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    try {
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      const [url, init] = fetchMock.mock.calls[0];
+      const parsedUrl = new URL(url.toString());
+      expect(parsedUrl.pathname).toBe("/api/tickets");
+      expect(parsedUrl.searchParams.get("status")).toBe("NUEVO");
+      expect(parsedUrl.searchParams.get("categoria_id")).toBe("3");
+      expect(parsedUrl.searchParams.get("priority")).toBe("ALTA");
+      expect(init.method).toBe("GET");
+      expect(init.headers.authorization).toBe("Bearer token");
+      expect(init.body).toBeUndefined();
+
+      const responseFrame = currentSocket.writes.at(-1);
+      expect(responseFrame.slice(5, 10)).toBe(address);
+      const responsePayload = JSON.parse(responseFrame.slice(10));
+      expect(responsePayload.ok).toBe(true);
+      expect(responsePayload.status).toBe(200);
+      expect(responsePayload.data).toEqual({ tickets: [] });
+    } finally {
+      if (originalFetch) {
+        global.fetch = originalFetch;
+      } else {
+        delete global.fetch;
+      }
     }
   });
 });
