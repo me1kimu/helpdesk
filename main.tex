@@ -1,0 +1,246 @@
+
+
+\documentclass[letter,12pt]{article}
+\usepackage[paperheight=27.94cm,paperwidth=21.59cm,bindingoffset=0in,
+            left=3cm,right=2.0cm, top=3.5cm,bottom=2.5cm, 
+            headheight=200pt, headsep=1.0\baselineskip]{geometry}
+\usepackage{graphicx,lastpage}
+\usepackage{upgreek}
+\usepackage{censor}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{graphicx}
+\usepackage{pdfpages}
+\usepackage{tabularx}
+\usepackage{adjustbox}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{rotating}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage[utf8]{inputenc}
+\renewcommand{\tablename}{Tabla}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\title{\Huge{Informe N° 3.}}
+\author{Alex Nuñez  \& Camilo Rojas \& Lucas Gonzalez}
+\date{Octubre de 2025}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Descripción del sistema}
+Se desarrollará un sistema que centraliza la gestión de solicitudes internas mediante tickets, permitiendo registrar incidentes/requerimientos con título, descripción, categoría, prioridad y adjuntos, para darles seguimiento trazable hasta su cierre.
+
+El sistema incluirá autenticación y roles, creación y asignación de tickets, ciclo de vida (Nuevo → En progreso → Resuelto → Cerrado), comentarios e historial de cambios; además, listados con filtros (estado, prioridad, categoría, técnico, fechas) y un tablero para visualizar la carga. Generará un reporte resumido (resueltos/cerrados por categoría), enviará notificaciones en eventos, permitirá la reapertura si el problema persiste, además de la eliminación/anulación por el solicitante cuando corresponda.
+
+El cliente principal estará basado en tecnologías web y no requerirá instalación de software adicional, será utilizado por todos los usuarios. Mientras que los servicios principales serán: Tickets, Auth y Notificaciones.
+
+\section{Objetivos esperados}
+\begin{enumerate}
+    \item Gestionar tickets de ayuda (help desk): Permitir la creación, seguimiento, asignación, y cierre de tickets.
+    \item Mejorar la comunicación y resolución de problemas: Facilitar la interacción entre usuarios y administradores, y la posible reapertura de tickets.
+    \item Proporcionar un control y visibilidad del estado de los problemas: Ofrecer funcionalidades de listado, filtros, y reportes resumidos para el seguimiento de los tickets.
+    \item Optimizar la atención al usuario: A través de notificaciones y la capacidad de eliminación de tickets por parte del solicitante.
+\end{enumerate}
+\section{Perfiles de usuario}
+El sistema está dirigido a los colaboradores internos de la organización y define tres roles de usuario principales, cada uno con funcionalidades específicas:
+
+\begin{enumerate}
+    \item Usuario: Es el rol estándar para todos los colaboradores. Pueden crear nuevos tickets para reportar incidentes o hacer requerimientos, añadir comentarios, adjuntar archivos, dar seguimiento al estado de sus solicitudes, y reabrir o anular sus propios tickets.
+
+    \item Coordinador/Técnico: Es el usuario encargado de resolver los tickets. Tiene la capacidad de visualizar el tablero con la carga de trabajo, tomar la asignación de tickets, cambiar su estado (e.g., a "En Progreso" o "Resuelto"), y comunicarse con los solicitantes a través de comentarios.
+
+    \item Administrador: Posee el nivel de acceso más alto. Además de las funcionalidades de los otros roles, puede gestionar usuarios, categorías, y tiene acceso a todos los tickets y reportes para obtener una visión global del sistema, lo que le permite tomar decisiones estratégicas.
+\end{enumerate}
+\section{Requerimientos}
+\begin{enumerate}
+    \item Autenticación y roles: login/logout, recuperación de contraseña, control de acceso por rol (Administrador/Coordinador/Usuario), bloqueo por intentos y expiración de sesión.
+\item Gestión de tickets (CRUD + ciclo de vida): crear/ver/actualizar/eliminación lógica con auditoría, adjuntos y comentarios; asignación a coordinadores; estados Nuevo→En progreso→Resuelto→Cerrado; reapertura desde Resuelto/Cerrado; registro de autor, fecha y cambios.
+\item Listado y filtros: listar y filtrar por estado, prioridad, categoría, asignado y fechas; paginación, ordenamiento y exportación CSV.
+\item Reporte resumen: gráfico de tickets Resueltos/Cerrados por categoría y período; indicadores de tiempo de resolución y tasa de reapertura; acceso según rol.
+\item Notificaciones: in-app y correo en creación, asignación, cambio de estado, comentarios y cierre; cola con reintentos y envío diferido si no hay conexión.
+\item Acceso y comunicación: aplicación web responsive con login institucional y recuperación de cuenta; comunicaciones por notificación en app y correo.
+\item Arquitectura y protocolos: arquitectura SOA con API REST; frontend, API y base de datos separadas; todo tráfico por conexiones seguras con cifrado vigente; correo autenticado; colas para tareas diferidas.
+\item Geolocalización y riesgos: geolocalización opcional con consentimiento (uso de permisos de navegador o ingreso manual con pin en mapa)..
+
+\item Asignación automática de tickets: búsqueda de asignaciones de los operarios en base de datos, prioridad de asignación según actividad de operario y parámetros binarios, se implementara mediante el uso de FIFO y equilibradores de carga (borrador: “asigna mediante reglas de negocio (categoría, prioridad, ubicación), notificación al administrador y al usuario de asignación).
+\end{enumerate}
+\subsection{Requerimientos no funcionales}
+\begin{enumerate}
+    \item Disponibilidad: servicio operativo con mantenciones planificadas.
+\item Seguridad: todo por conexiones seguras con cifrado vigente; hash seguro; autorización por rol; \item protección CSRF; límite de consultas; auditoría.
+\item Observabilidad: logs estructurados, métricas y trazas distribuidas.
+\item Cumplimiento y privacidad: ley chilena de datos personales; consentimiento para ubicación.
+\item Límites y restricciones: usuarios, tickets, tamaño de adjuntos y almacenamiento documentados.
+\item Riesgos y mitigación: copias de seguridad, reintentos de conexión.
+\end{enumerate}
+\subsection{Trazabilidad u objetivos}
+\begin{enumerate}
+    \item RF Autenticación y roles → Objetivo de control de acceso.
+ \item RF Gestión de tickets → Objetivo de gestión y trazabilidad.
+ \item RF Asignación → Objetivo de resolución eficiente.
+ \item RF Comentarios y adjuntos → Objetivo de colaboración.
+ \item RF Listado y filtros → Objetivo de visibilidad del estado.
+ \item RF Reporte resumen → Objetivo de control y decisiones.
+ \itemRF Notificaciones → Objetivo de atención oportuna.
+ \item RF Acceso y comunicación → Objetivo de disponibilidad a usuarios.
+ \item RF Geolocalización → Objetivo de análisis y despacho.
+\end{enumerate}
+\section{Modelo de datos y Persistencia}
+Mecanismo de Persistencia: Para el almacenamiento de los datos se utilizará un sistema de gestión de bases de datos relacional (RDBMS). Esta elección se debe a la naturaleza estructurada de los datos, la necesidad de mantener la integridad referencial entre entidades como tickets, usuarios y comentarios, y las capacidades transaccionales que ofrece.
+
+\begin{enumerate}
+    \item Tickets: ID (int pk, autoincrement); Título (varchar(120) not null); Descripción (text not null); categoria\_id (int fk $\rightarrow$ categorias.id, ON DELETE RESTRICT); Prioridad (enum: BAJA, MEDIA, ALTA, CRITICA); Estado (enum: NUEVO, EN\_PROGRESO, RESUELTO, CERRADO); Fecha creación (datetime default CURRENT\_TIMESTAMP); Fecha cierre (datetime null); solicitante\_id (int fk $\rightarrow$ usuarios.id, ON DELETE RESTRICT); ejecutivo\_id (int fk $\rightarrow$ usuarios.id, ON DELETE SET NULL); Índices: (estado, prioridad), categoria\_id, solicitante\_id, ejecutivo\_id.
+
+\item Usuarios: ID (int pk, autoincrement); Nombre (varchar(120) not null); Email (varchar(120) unique not null); password\_hash (char(60) not null); Rol (enum: ADMIN, COORDINADOR, USUARIO); Fecha creación (datetime default CURRENT\_TIMESTAMP); Activo (tinyint(1) default 1).
+
+\item Categorías: ID (int pk, autoincrement); Nombre (varchar(80) unique not null); Descripción (text null).
+
+\item Comentarios: ID (int pk, autoincrement); Contenido (text not null); Fecha creación (datetime default CURRENT\_TIMESTAMP); ticket\_id (int fk $\rightarrow$ tickets.id, ON DELETE CASCADE); usuario\_id (int fk $\rightarrow$ usuarios.id, ON DELETE SET NULL); Índice: ticket\_id.
+
+\item Adjuntos: ID (int pk, autoincrement); Nombre (varchar(120) not null); Ruta (varchar(255) not null); Tipo (varchar(100) not null); Tamaño (int unsigned null); Checksum (varchar(64) null); Fecha subida (datetime default CURRENT\_TIMESTAMP); ticket\_id (int fk $\rightarrow$ tickets.id, ON DELETE CASCADE); usuario\_id (int fk $\rightarrow$ usuarios.id, ON DELETE SET NULL); Índice: ticket\_id.
+\end{enumerate}
+
+Conforme a los requisitos del proyecto, el sistema se diseñará bajo una Arquitectura Orientada a Servicios (SOA). Esta arquitectura desacopla las funcionalidades en servicios independientes y reutilizables, que se comunican a través de una red.  
+Los componentes principales de la arquitectura son:
+\begin{enumerate}
+    \item Componente Cliente: Una aplicación web responsive desarrollada con tecnologías modernas. Este cliente no contendrá lógica de negocio, sino que su única función será interactuar con los servicios backend a través de una API para presentar la información al usuario y capturar sus acciones. Será el único punto de acceso para todos los roles de usuario.  
+\item Componentes de Servicio: Son los encargados de implementar la lógica de negocio. Se han definido tres servicios principales:  
+\begin{itemize}
+    \item Servicio de Autenticación (Auth): Responsable de gestionar la identidad de los usuarios: login, logout, gestión de sesiones, recuperación de contraseñas y validación de roles y permisos.
+\item Servicio de Tickets: Es el servicio principal que encapsula toda la lógica relacionada con la \item gestión de tickets: creación, actualización, asignación, comentarios, adjuntos, listados y reportes.
+\item Servicio de Notificaciones: Opera de forma asíncrona. Su función es gestionar el envío de correos electrónicos y notificaciones in-app, utilizando una cola para asegurar la entrega incluso si los sistemas externos no están disponibles temporalmente.
+\end{itemize}
+\end{enumerate}
+Se describen las interfaces de comunicación (APIs) para cada servicio, especificando el requerimiento funcional (RF) que satisfacen.  
+
+    \subsection{ Interfaz del Servicio de Autenticación}
+    \begin{enumerate}
+    \begin{itemize}
+        \item \textbf{POST /api/auth/login}
+              \newline Descripción: Autentica a un usuario con su email y contraseña.
+              \newline RF Satisfecho: Autenticación y roles.  
+              \newline RNF Considerado: Seguridad (transmite credenciales sobre conexiones seguras).
+              
+        \item \textbf{POST /api/auth/logout}
+              \newline Descripción: Cierra la sesión del usuario actual.
+              \newline RF Satisfecho: Autenticación y roles.
+              
+        \item \textbf{POST /api/auth/recover}
+              \newline Descripción: Inicia el proceso de recuperación de contraseña.
+              \newline RF Satisfecho: Autenticación y roles.
+    \end{itemize}
+\end{enumerate}    
+ \subsection{Interfaz del Servicio de Tickets}
+    \begin{itemize}
+        \item \textbf{POST /api/tickets}
+              \newline Descripción: Crea un nuevo ticket.
+              \newline RF Satisfecho: Gestión de tickets.
+              
+        \item \textbf{GET /api/tickets}
+              \newline Descripción: Obtiene una lista paginada y filtrada de tickets.
+              \newline RF Satisfecho: Listado y filtros.
+              
+        \item \textbf{GET /api/tickets/\{id\}}
+              \newline Descripción: Obtiene los detalles completos de un ticket específico.
+              \newline RF Satisfecho: Gestión de tickets.
+              
+        \item \textbf{PUT /api/tickets/\{id\}}
+              \newline Descripción: Actualiza la información de un ticket (estado, prioridad, asignado, etc.).
+              \newline RF Satisfecho: Gestión de tickets.
+              
+        \item \textbf{POST /api/tickets/\{id\}/comments}
+              \newline Descripción: Agrega un nuevo comentario a un ticket.
+              \newline RF Satisfecho: Gestión de tickets.
+              
+        \item \textbf{POST /api/tickets/\{id\}/attachments}
+              \newline Descripción: Sube un archivo adjunto a un ticket.
+              \newline RF Satisfecho: Gestión de tickets.
+              
+        \item \textbf{GET /api/reports/summary}
+              \newline Descripción: Genera el reporte resumido de tickets por categoría y período.
+              \newline RF Satisfecho: Reporte resumen.  
+              \newline RNF Considerado: Seguridad (acceso restringido por rol).
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Interfaz del Servicio de Notificaciones}
+    
+    Este servicio no expone una API pública para el cliente web, sino que se comunica internamente a través de un sistema de colas de mensajes. Otros servicios (como el de Tickets) publican eventos en la cola (e.g., {ticket.created}, {ticket.comment.added}) y el servicio de notificaciones los consume para realizar los envíos.
+   \begin{enumerate}
+    \item \textbf{Evento: ticket.created}
+          \newline Descripción: Se activa al crear un ticket. El servicio envía una notificación por correo al solicitante.
+          \newline RF Satisfecho: Notificaciones.
+          \newline RNF Considerado: Disponibilidad (la cola con reintentos mitiga caídas del servidor de correo).
+          
+    \item \textbf{Evento: ticket.assigned}
+          \newline Descripción: Se activa al asignar un ticket a un coordinador. El servicio notifica al usuario asignado.
+          \newline RF Satisfecho: Notificaciones.
+          
+\end{enumerate}
+
+\section{Procesos cliente}
+Flujos de uso del sistema con evidencia.
+\subsection*{Crear ticket}
+\begin{enumerate}
+  \item Usuario inicia sesión.
+  \item Abre ``Nuevo ticket'', completa y envía.
+  \item Sistema confirma con ID y estado \textit{Abierto}.
+\end{enumerate}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{evidencias/proceso_crear_ticket.png}
+\caption{Flujo crear ticket}
+\end{figure}
+
+\subsection*{Asignar y comentar}
+Pasos para asignar responsable y agregar comentarios con captura de pantalla.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{evidencias/proceso_asignar_comentar.png}
+\caption{Flujo asignar y comentar}
+\end{figure}
+
+\subsection*{Cerrar y reabrir}
+Criterios de cierre, permisos para reabrir y evidencia.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\linewidth]{evidencias/proceso_cerrar_reabrir.png}
+\caption{Flujo cerrar y reabrir}
+\end{figure}
+
+
+\section{Servicios implementados}
+Estado por módulo, contratos y decisiones.
+\subsection*{Resumen}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Módulo} & \textbf{Descripción} & \textbf{Estado} \\
+\hline
+Autenticación & Login JWT, roles & Implementado/Parcial \\
+Tickets & CRUD, asignación, comentarios, estados & Implementado/Parcial \\
+Notificaciones & Email/In-app & Implementado/Parcial \\
+\hline
+\end{tabular}
+
+\subsection*{Contratos de API (clave)}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Método} & \textbf{Ruta} & \textbf{Descripción} \\
+\hline
+POST & /api/v1/auth/login & Devuelve token y perfil \\
+GET  & /api/v1/tickets & Lista con filtros \\
+POST & /api/v1/tickets & Crea ticket \\
+GET  & /api/v1/tickets/\{id\} & Obtiene ticket \\
+PUT  & /api/v1/tickets/\{id\} & Edita ticket \\
+\hline
+\end{tabular}
+
+
+
+\section{Anexo}
+\end{document}
