@@ -5,9 +5,6 @@ from services.auth import AuthService
 from services.user_service import UserService
 from services.ticket_services import TicketService
 from services.category_service import CategoryService
-from models.user import User
-from models.ticket import Ticket
-from models.comment import Comment
 
 class TerminalInterface:
     def __init__(self, auth_service: AuthService, user_service: UserService,
@@ -61,6 +58,11 @@ class TerminalInterface:
             return False
         
         email = input("Email: ").strip()
+
+        roll =input("Rol del usuario: ").strip()
+        if not roll:
+            print ("❌ El rol que selecciono no existe.")
+            return False
         
         password = getpass.getpass("Contraseña: ")
         if len(password) < 4:
@@ -72,10 +74,8 @@ class TerminalInterface:
             print("❌ Las contraseñas no coinciden.")
             return False
         
-        password_hash = self.auth_service.db_manager.hash_password(password)
-        new_user = User.create(nombre, email, password_hash)
-        
-        if self.user_service.create_user(new_user):
+        # === CAMBIO CORREGIDO ===
+        if self.user_service.create_user_from_data(nombre, email, password):
             print("✅ Usuario registrado exitosamente.")
             return True
         else:
@@ -109,11 +109,11 @@ class TerminalInterface:
         categories = self.category_service.get_all_categories()
         print("\n=== CATEGORÍAS DISPONIBLES ===")
         for cat in categories:
-            print(f"{cat.ID}. {cat.Nombre} - {cat.Descripcion or ''}")
+            print(f"{cat['ID']}. {cat['Nombre']} - {cat.get('Descripcion', '')}")
         
         try:
             categoria_id = int(input("\nSelecciona el ID de la categoría: "))
-            if not any(cat.ID == categoria_id for cat in categories):
+            if not any(cat['ID'] == categoria_id for cat in categories):
                 print("❌ Categoría no válida.")
                 return
         except ValueError:
@@ -137,11 +137,10 @@ class TerminalInterface:
             prioridad = 'media'
         
         user = self.auth_service.get_current_user()
-        new_ticket = Ticket.create(titulo, categoria_id, user.ID, prioridad)
         
-        ticket_id = self.ticket_service.create_ticket(new_ticket, descripcion)
-        if ticket_id:
-            print(f"✅ Ticket #{ticket_id} creado exitosamente.")
+        # Usar la versión simplificada que recibe parámetros directamente
+        if self.ticket_service.create_ticket(titulo, categoria_id, user.ID, descripcion, prioridad):
+            print("✅ Ticket creado exitosamente.")
         else:
             print("❌ Error al crear el ticket.")
     
@@ -156,11 +155,12 @@ class TerminalInterface:
             return
         
         for ticket in tickets:
-            print(f"\n📋 Ticket #{ticket.ID}")
-            print(f"   Título: {ticket.Titulo}")
-            print(f"   Prioridad: {ticket.Prioridad}")
-            print(f"   Estado: {ticket.Estado}")
-            print(f"   Creado: {ticket.Fecha_creacion[:16]}")
+            print(f"\n📋 Ticket #{ticket['ID']}")
+            print(f"   Título: {ticket['Titulo']}")
+            print(f"   Categoría: {ticket.get('CategoriaNombre', 'N/A')}")
+            print(f"   Prioridad: {ticket['Prioridad']}")
+            print(f"   Estado: {ticket['Estado']}")
+            print(f"   Creado: {ticket['Fecha_creacion'][:16]}")
     
     def handle_view_all_tickets(self):
         """Muestra todos los tickets (admin only)"""
@@ -176,11 +176,13 @@ class TerminalInterface:
             return
         
         for ticket in tickets:
-            print(f"\n📋 Ticket #{ticket.ID}")
-            print(f"   Título: {ticket.Titulo}")
-            print(f"   Prioridad: {ticket.Prioridad}")
-            print(f"   Estado: {ticket.Estado}")
-            print(f"   Creado: {ticket.Fecha_creacion[:16]}")
+            print(f"\n📋 Ticket #{ticket['ID']}")
+            print(f"   Título: {ticket['Titulo']}")
+            print(f"   Categoría: {ticket.get('CategoriaNombre', 'N/A')}")
+            print(f"   Prioridad: {ticket['Prioridad']}")
+            print(f"   Estado: {ticket['Estado']}")
+            print(f"   Solicitante: {ticket.get('SolicitanteNombre', 'N/A')}")
+            print(f"   Creado: {ticket['Fecha_creacion'][:16]}")
     
     def handle_view_comments(self):
         """Muestra comentarios de un ticket"""
@@ -194,8 +196,8 @@ class TerminalInterface:
                 return
             
             for comment in comments:
-                print(f"\n👤 {comment.Fecha_creacion[:16]}")
-                print(f"   {comment.Contenido}")
+                print(f"\n👤 {comment.get('UsuarioNombre', 'Anónimo')} - {comment['Fecha_creacion'][:16]}")
+                print(f"   {comment['Contenido']}")
                 
         except ValueError:
             print("❌ ID de ticket debe ser un número.")
@@ -211,9 +213,9 @@ class TerminalInterface:
                 return
             
             user = self.auth_service.get_current_user()
-            new_comment = Comment.create(contenido, ticket_id, user.ID)
             
-            if self.ticket_service.add_comment(new_comment):
+            # Usar la versión que recibe parámetros directamente
+            if self.ticket_service.add_comment(ticket_id, user.ID, contenido):
                 print("✅ Comentario añadido exitosamente.")
             else:
                 print("❌ Error al añadir el comentario.")

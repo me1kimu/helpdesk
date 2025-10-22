@@ -1,12 +1,17 @@
-from typing import List
+from typing import List, Dict, Any
 from database.database import DatabaseManager
-from models.category import Category
 
 class CategoryService:
-    def __init__(self, db_manager: DatabaseManager):
+    def __init__(self, db_manager: DatabaseManager, service_bus):
         self.db_manager = db_manager
+        self.service_bus = service_bus
+        self._register_handlers()
     
-    def get_all_categories(self) -> List[Category]:
+    def _register_handlers(self):
+        """Registra los manejadores en el bus"""
+        self.service_bus.register_handler("categories", "get_all", self._handle_get_all_categories)
+    
+    def _handle_get_all_categories(self, payload: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Obtiene todas las categorías"""
         conn = self.db_manager._get_connection()
         cursor = conn.cursor()
@@ -17,27 +22,11 @@ class CategoryService:
         
         categories = []
         for cat_data in categories_data:
-            categories.append(Category(
-                ID=cat_data['ID'],
-                Nombre=cat_data['Nombre'],
-                Descripcion=cat_data['Descripcion']
-            ))
+            categories.append(dict(cat_data))
         
         return categories
     
-    def get_category_by_id(self, category_id: int) -> Category:
-        """Obtiene una categoría por ID"""
-        conn = self.db_manager._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT * FROM Categorias WHERE ID = ?', (category_id,))
-        cat_data = cursor.fetchone()
-        conn.close()
-        
-        if cat_data:
-            return Category(
-                ID=cat_data['ID'],
-                Nombre=cat_data['Nombre'],
-                Descripcion=cat_data['Descripcion']
-            )
-        return None
+    # Método de conveniencia para compatibilidad
+    def get_all_categories(self) -> List[Dict[str, Any]]:
+        """Método de conveniencia para obtener categorías"""
+        return self.service_bus.send_query("categories", "get_all", {})

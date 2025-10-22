@@ -100,12 +100,12 @@ class DatabaseManager:
         ''', categorias)
         
         # Usuario administrador por defecto
-        admin_password = hashlib.sha256('admin123'.encode()).hexdigest()
+        admin_password = hashlib.sha256('tecnico1234'.encode()).hexdigest()
         cursor.execute('''
             INSERT OR IGNORE INTO Usuarios 
             (Nombre, Email, Password_hash, Roll, Estado, Activo) 
             VALUES (?, ?, ?, ?, ?, ?)
-        ''', ('admin', 'admin@sistema.com', admin_password, 'admin', 'activo', 1))
+        ''', ('tecnico 1', 'tecnico1@sistema.com', admin_password, 'tecnico', 'activo', 1))
         
         conn.commit()
         conn.close()
