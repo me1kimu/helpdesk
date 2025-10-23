@@ -1,46 +1,13 @@
-#version: '3.8'
-
 services:
-  db:
-    image: postgres:15
-    container_name: manumarket_db
-    restart: always
-    environment:
-      POSTGRES_USER:     postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB:       manumarket
-    volumes:
-      - manumarket-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+  soabus:
+    image: jrgiadach/soabus:latest
+    ports: ["5000:5000"]
+    restart: unless-stopped
 
-
-  ventas_api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ventas_api
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-    env_file:
-      - .env
-
-  frontend_node:
-    image: node:18-alpine
-    container_name: frontend_node
-    working_dir: /app
-    volumes:
-      - ./frontend-node:/app
-    command: sh -c "npm install && npx nodemon --watch src --exec 'node src/server.js'"
-    ports:
-      - "3000:3000"
-    depends_on:
-      - ventas_api
-
-volumes:
-  manumarket-data:
+  app:
+    build: .
+    depends_on: [soabus]
+    env_file: [.env]
+    command: ["python","-m","Sistema_Ticket_Soa.main"]
+    stdin_open: true
+    tty: true

@@ -1,5 +1,3 @@
-
-
 \documentclass[letter,12pt]{article}
 \usepackage[paperheight=27.94cm,paperwidth=21.59cm,bindingoffset=0in,
             left=3cm,right=2.0cm, top=3.5cm,bottom=2.5cm, 
@@ -23,7 +21,7 @@
 \pagestyle{fancy}
 
 \title{\Huge{Informe N° 3.}}
-\author{Alex Nuñez  \& Camilo Rojas \& Lucas Gonzalez}
+\author{Alex Nuñez  \& Camilo Pinto \& Lucas Gonzalez}
 \date{Octubre de 2025}
 
 \begin{document}
@@ -37,7 +35,11 @@ Se desarrollará un sistema que centraliza la gestión de solicitudes internas m
 
 El sistema incluirá autenticación y roles, creación y asignación de tickets, ciclo de vida (Nuevo → En progreso → Resuelto → Cerrado), comentarios e historial de cambios; además, listados con filtros (estado, prioridad, categoría, técnico, fechas) y un tablero para visualizar la carga. Generará un reporte resumido (resueltos/cerrados por categoría), enviará notificaciones en eventos, permitirá la reapertura si el problema persiste, además de la eliminación/anulación por el solicitante cuando corresponda.
 
-El cliente principal estará basado en tecnologías web y no requerirá instalación de software adicional, será utilizado por todos los usuarios. Mientras que los servicios principales serán: Tickets, Auth y Notificaciones.
+El cliente principal, para esta entrega, es por línea de comandos (CLI). 
+No hay interfaz web. Los servicios (Auth, Tickets y Notificaciones) 
+se comunican mediante un bus de servicios externo desplegado con Docker 
+(jrgiadach/soabus) por TCP puerto 5000.
+
 
 \section{Objetivos esperados}
 \begin{enumerate}
@@ -63,8 +65,11 @@ El sistema está dirigido a los colaboradores internos de la organización y def
 \item Listado y filtros: listar y filtrar por estado, prioridad, categoría, asignado y fechas; paginación, ordenamiento y exportación CSV.
 \item Reporte resumen: gráfico de tickets Resueltos/Cerrados por categoría y período; indicadores de tiempo de resolución y tasa de reapertura; acceso según rol.
 \item Notificaciones: in-app y correo en creación, asignación, cambio de estado, comentarios y cierre; cola con reintentos y envío diferido si no hay conexión.
-\item Acceso y comunicación: aplicación web responsive con login institucional y recuperación de cuenta; comunicaciones por notificación en app y correo.
-\item Arquitectura y protocolos: arquitectura SOA con API REST; frontend, API y base de datos separadas; todo tráfico por conexiones seguras con cifrado vigente; correo autenticado; colas para tareas diferidas.
+\item Acceso y comunicación: cliente por línea de comandos (CLI); autenticación en terminal; interacción entre servicios vía bus externo.
+\item Arquitectura y protocolos: SOA con bus externo (jrgiadach/soabus) por TCP 5000; 
+servicios desacoplados que publican/consumen mensajes; cliente CLI; 
+variables BUS_HOST = soabus y BUS_PORT = 5000; contenedores Docker.
+
 \item Geolocalización y riesgos: geolocalización opcional con consentimiento (uso de permisos de navegador o ingreso manual con pin en mapa)..
 
 \item Asignación automática de tickets: búsqueda de asignaciones de los operarios en base de datos, prioridad de asignación según actividad de operario y parámetros binarios, se implementara mediante el uso de FIFO y equilibradores de carga (borrador: “asigna mediante reglas de negocio (categoría, prioridad, ubicación), notificación al administrador y al usuario de asignación).
@@ -108,69 +113,52 @@ Mecanismo de Persistencia: Para el almacenamiento de los datos se utilizará un 
 Conforme a los requisitos del proyecto, el sistema se diseñará bajo una Arquitectura Orientada a Servicios (SOA). Esta arquitectura desacopla las funcionalidades en servicios independientes y reutilizables, que se comunican a través de una red.  
 Los componentes principales de la arquitectura son:
 \begin{enumerate}
-    \item Componente Cliente: Una aplicación web responsive desarrollada con tecnologías modernas. Este cliente no contendrá lógica de negocio, sino que su única función será interactuar con los servicios backend a través de una API para presentar la información al usuario y capturar sus acciones. Será el único punto de acceso para todos los roles de usuario.  
+    \item Componente Cliente: Aplicación por línea de comandos que invoca casos de uso 
+y publica/consume mensajes vía bus. Sin UI web en esta entrega.
+
 \item Componentes de Servicio: Son los encargados de implementar la lógica de negocio. Se han definido tres servicios principales:  
 \begin{itemize}
     \item Servicio de Autenticación (Auth): Responsable de gestionar la identidad de los usuarios: login, logout, gestión de sesiones, recuperación de contraseñas y validación de roles y permisos.
 \item Servicio de Tickets: Es el servicio principal que encapsula toda la lógica relacionada con la \item gestión de tickets: creación, actualización, asignación, comentarios, adjuntos, listados y reportes.
-\item Servicio de Notificaciones: Opera de forma asíncrona. Su función es gestionar el envío de correos electrónicos y notificaciones in-app, utilizando una cola para asegurar la entrega incluso si los sistemas externos no están disponibles temporalmente.
+\item Servicio de Notificaciones: Opera de forma asíncrona. Su función es gestionar el envío de correos electrónicos y notificaciones in-app, utilizando el bus externo para asegurar la entrega con reintentos incluso si los sistemas externos no están disponibles temporalmente.
 \end{itemize}
 \end{enumerate}
-Se describen las interfaces de comunicación (APIs) para cada servicio, especificando el requerimiento funcional (RF) que satisfacen.  
+Se describen los contratos de mensajería por bus para cada servicio, indicando el requerimiento funcional (RF) que satisfacen.  
 
-    \subsection{ Interfaz del Servicio de Autenticación}
-    \begin{enumerate}
-    \begin{itemize}
-        \item \textbf{POST /api/auth/login}
-              \newline Descripción: Autentica a un usuario con su email y contraseña.
-              \newline RF Satisfecho: Autenticación y roles.  
-              \newline RNF Considerado: Seguridad (transmite credenciales sobre conexiones seguras).
-              
-        \item \textbf{POST /api/auth/logout}
-              \newline Descripción: Cierra la sesión del usuario actual.
-              \newline RF Satisfecho: Autenticación y roles.
-              
-        \item \textbf{POST /api/auth/recover}
-              \newline Descripción: Inicia el proceso de recuperación de contraseña.
-              \newline RF Satisfecho: Autenticación y roles.
-    \end{itemize}
-\end{enumerate}    
- \subsection{Interfaz del Servicio de Tickets}
-    \begin{itemize}
-        \item \textbf{POST /api/tickets}
-              \newline Descripción: Crea un nuevo ticket.
-              \newline RF Satisfecho: Gestión de tickets.
-              
-        \item \textbf{GET /api/tickets}
-              \newline Descripción: Obtiene una lista paginada y filtrada de tickets.
-              \newline RF Satisfecho: Listado y filtros.
-              
-        \item \textbf{GET /api/tickets/\{id\}}
-              \newline Descripción: Obtiene los detalles completos de un ticket específico.
-              \newline RF Satisfecho: Gestión de tickets.
-              
-        \item \textbf{PUT /api/tickets/\{id\}}
-              \newline Descripción: Actualiza la información de un ticket (estado, prioridad, asignado, etc.).
-              \newline RF Satisfecho: Gestión de tickets.
-              
-        \item \textbf{POST /api/tickets/\{id\}/comments}
-              \newline Descripción: Agrega un nuevo comentario a un ticket.
-              \newline RF Satisfecho: Gestión de tickets.
-              
-        \item \textbf{POST /api/tickets/\{id\}/attachments}
-              \newline Descripción: Sube un archivo adjunto a un ticket.
-              \newline RF Satisfecho: Gestión de tickets.
-              
-        \item \textbf{GET /api/reports/summary}
-              \newline Descripción: Genera el reporte resumido de tickets por categoría y período.
-              \newline RF Satisfecho: Reporte resumen.  
-              \newline RNF Considerado: Seguridad (acceso restringido por rol).
-    \end{itemize}
-\end{enumerate}
+ \subsection*{Contratos por bus de servicios}
+En esta entrega los servicios no exponen HTTP. Se comunican por un \textbf{bus TCP} externo
+(\texttt{jrgiadach/soabus}, puerto 5000). El protocolo es \emph{JSON por línea} (JSONL): cada
+mensaje es un JSON terminado en salto de línea. Hay dos patrones:
+\textbf{request/response} (sincronía punto a punto) y \textbf{eventos} (publicación asíncrona).
+
+\noindent\textbf{Convenciones}
+\begin{itemize}
+  \item Variables: \texttt{BUS\_HOST=soabus}, \texttt{BUS\_PORT=5000}.
+  \item Campos: \texttt{type \{request|event\}}, \texttt{service}, \texttt{action} o \texttt{topic}, \texttt{payload}.
+  \item Fiabilidad: el emisor reintenta ante error y el consumidor idempotiza por \texttt{id} de mensaje.
+\end{itemize}
+
+\paragraph{Auth.authenticate (request)} Autentica credenciales y retorna perfil.
+\begin{verbatim}
+{"type":"request","service":"auth","action":"authenticate",
+ "payload":{"email":"usuario@acme.com","password":"****"}}
+\end{verbatim}
+
+\paragraph{Tickets.get_by_user (request)} Lista tickets del usuario.
+\begin{verbatim}
+{"type":"request","service":"tickets","action":"get_by_user",
+ "payload":{"user_id":123}}
+\end{verbatim}
+
+\paragraph{Ticket.created (event)} Se emite al crear un ticket; lo consume Notificaciones.
+\begin{verbatim}
+{"type":"event","topic":"ticket.created",
+ "payload":{"id":101,"categoria":"Soporte","usuario":123}}
+\end{verbatim}
 
 \subsection{Interfaz del Servicio de Notificaciones}
     
-    Este servicio no expone una API pública para el cliente web, sino que se comunica internamente a través de un sistema de colas de mensajes. Otros servicios (como el de Tickets) publican eventos en la cola (e.g., {ticket.created}, {ticket.comment.added}) y el servicio de notificaciones los consume para realizar los envíos.
+    Este servicio no expone una API pública para el cliente web, sino que se comunica a través del bus externo (jrgiadach/soabus) y aplica reintentos ante fallas externas. Otros servicios (como el de Tickets) publican eventos en el bus externo (e.g., {ticket.created}, {ticket.comment.added}) y el servicio de notificaciones los consume para realizar los envíos.
    \begin{enumerate}
     \item \textbf{Evento: ticket.created}
           \newline Descripción: Se activa al crear un ticket. El servicio envía una notificación por correo al solicitante.
@@ -183,8 +171,26 @@ Se describen las interfaces de comunicación (APIs) para cada servicio, especifi
           
 \end{enumerate}
 
-\section{Procesos cliente}
-Flujos de uso del sistema con evidencia.
+\section{Procesos cliente (CLI)}
+\subsection*{Crear ticket}
+\begin{verbatim}
+docker compose up -d soabus
+docker compose run --rm -it app python -m Sistema_Ticket_Soa.main
+# Login -> Crear ticket -> completar -> confirmar
+\end{verbatim}
+
+\subsection*{Asignar y comentar}
+\begin{verbatim}
+# Menú -> Asignar ticket -> seleccionar técnico
+# Menú -> Agregar comentario -> escribir texto
+\end{verbatim}
+
+\subsection*{Cerrar y reabrir}
+\begin{verbatim}
+# Menú -> Cambiar estado a Resuelto/Cerrado
+# Menú -> Reabrir si corresponde
+\end{verbatim}
+
 \subsection*{Crear ticket}
 \begin{enumerate}
   \item Usuario inicia sesión.
@@ -209,8 +215,8 @@ Pasos para asignar responsable y agregar comentarios con captura de pantalla.
 Criterios de cierre, permisos para reabrir y evidencia.
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.85\linewidth]{evidencias/proceso_cerrar_reabrir.png}
-\caption{Flujo cerrar y reabrir}
+\includegraphics[width=0.85\linewidth]{evidencias/proceso_Cambiar_contrasena.png}
+\caption{Flujo proceso Cambiar contrasena}
 \end{figure}
 
 
@@ -227,20 +233,35 @@ Notificaciones & Email/In-app & Implementado/Parcial \\
 \hline
 \end{tabular}
 
-\subsection*{Contratos de API (clave)}
-\begin{tabular}{|l|l|l|}
-\hline
-\textbf{Método} & \textbf{Ruta} & \textbf{Descripción} \\
-\hline
-POST & /api/v1/auth/login & Devuelve token y perfil \\
-GET  & /api/v1/tickets & Lista con filtros \\
-POST & /api/v1/tickets & Crea ticket \\
-GET  & /api/v1/tickets/\{id\} & Obtiene ticket \\
-PUT  & /api/v1/tickets/\{id\} & Edita ticket \\
-\hline
-\end{tabular}
+\subsection*{Contratos por bus de servicios}
+Los servicios intercambian mensajes JSON por línea (JSONL) en el bus TCP (\texttt{jrgiadach/soabus}).
+
+\paragraph{Auth.authenticate (request)}
+\begin{verbatim}
+{"type":"request","service":"auth","action":"authenticate",
+ "payload":{"email":"usuario@acme.com","password":"****"}}
+\end{verbatim}
+
+\paragraph{Tickets.get_by_user (request)}
+\begin{verbatim}
+{"type":"request","service":"tickets","action":"get_by_user",
+ "payload":{"user_id":123}}
+\end{verbatim}
+
+\paragraph{Ticket.created (event)}
+\begin{verbatim}
+{"type":"event","topic":"ticket.created",
+ "payload":{"id":101,"categoria":"Soporte","usuario":123}}
+\end{verbatim}
 
 
 
 \section{Anexo}
+
+
+
+\section{Comentarios}
+
+Se decidió, con apoyo del ayudante, implementar para esta entrega un cliente por línea de comandos en vez de una interfaz web. La razón: bajar complejidad del frontend, cumplir plazo y validar primero los servicios núcleo (Auth, Tickets, Notificaciones) y el flujo de negocio. El CLI permite crear, listar, asignar, comentar, cerrar y reabrir tickets usando el bus externo por TCP 5000 (jrgiadach/soabus), manteniendo trazabilidad y roles. La UI web queda como trabajo posterior, reutilizando los mismos contratos y agregando pruebas de usabilidad. Este recorte no afecta los RF clave ni los RNF de seguridad, observabilidad y disponibilidad planificados.
+
 \end{document}
