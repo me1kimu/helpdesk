@@ -3,11 +3,22 @@ import os
 from typing import Dict, Any, Callable, List, Optional
 import threading
 import time
+import json  # <-- agregado
 
 # Agregar el directorio actual al path para importaciones
 sys.path.append(os.path.dirname(__file__))
 
 from message import Message, MessageType, MessageStatus
+
+# ---- agregado: helper de logging TX ----
+def _log(tag: str, data: dict):
+    """Imprime trafico del bus en JSON (TX-OUT / TX-IN)"""
+    try:
+        print(f"[{tag}] {json.dumps(data, ensure_ascii=False)}", flush=True)
+    except Exception:
+        # fallback por si hay objetos no serializables
+        print(f"[{tag}] {str(data)}", flush=True)
+# ----------------------------------------
 
 class ServiceBus:
     def __init__(self):
@@ -28,25 +39,46 @@ class ServiceBus:
         """Envía un comando y espera respuesta síncrona"""
         message = Message.create(MessageType.COMMAND, service, action, payload)
         
+        # ---- agregado: log TX-OUT ----
+        _log("TX-OUT", {"type":"request","service":service,"action":action,"payload":payload})
+        # -------------------------------
+
         # Procesamiento síncrono
         response = self._process_message(message)
         message.response = response
         message.status = MessageStatus.PROCESSED
-        
+
+        # ---- agregado: log TX-IN ----
+        _log("TX-IN", {"status":"ok","response":response})
+        # ------------------------------
+
         return message
     
     def send_query(self, service: str, action: str, payload: Dict[str, Any]) -> Any:
         """Envía una consulta y retorna la respuesta"""
         message = Message.create(MessageType.QUERY, service, action, payload)
-        
+
+        # ---- agregado: log TX-OUT ----
+        _log("TX-OUT", {"type":"request","service":service,"action":action,"payload":payload})
+        # -------------------------------
+
         # Procesamiento síncrono
         response = self._process_message(message)
+
+        # ---- agregado: log TX-IN ----
+        _log("TX-IN", {"status":"ok","response":response})
+        # ------------------------------
+
         return response
     
     def publish_event(self, service: str, event: str, payload: Dict[str, Any]):
         """Publica un evento (sin esperar respuesta)"""
         message = Message.create(MessageType.EVENT, service, event, payload)
-        
+
+        # ---- agregado: log TX-OUT ----
+        _log("TX-OUT", {"type":"event","topic":f"{service}.{event}","payload":payload})
+        # -------------------------------
+
         # Procesamiento asíncrono
         with self._lock:
             self.message_queue.append(message)
@@ -96,14 +128,22 @@ class ServiceBus:
             if message:
                 try:
                     self._process_message(message)
+                    # ---- agregado: ACK del evento procesado ----
+                    _log("TX-IN", {"ack":"event_processed",
+                                   "topic":f"{message.service}.{message.action}",
+                                   "payload":message.payload})
+                    # -------------------------------------------
                     print(f"📨 Evento procesado: {message.service}.{message.action}")
                 except Exception as e:
                     print(f"❌ Error procesando evento {message.service}.{message.action}: {e}")
             
             time.sleep(0.1)
 
+    # --- ya estaba: no se elimina; se agrega log TX-OUT opcional ---
     def publish_event(self, module, event_type, data):
            full_event_name = f"{module}.{event_type}"
+           # log adicional
+           _log("TX-OUT", {"type":"event","topic":full_event_name,"payload":data})
            if full_event_name in self.handlers:
             for handler in self.handlers[full_event_name]:
                 try:
