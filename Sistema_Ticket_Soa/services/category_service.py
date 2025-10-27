@@ -16,7 +16,7 @@ class CategoryService:
         conn = self.db_manager._get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM Categorias ORDER BY Nombre')
+        cursor.execute('SELECT * FROM Categorias ORDER BY ID')
         categories_data = cursor.fetchall()
         conn.close()
         
