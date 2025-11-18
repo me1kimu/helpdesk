@@ -1,16 +1,40 @@
-# ManuMarket
+## Uso principal: Ticketera CLI (terminal)
 
-Repositorio para el proyecto de punto de ventas y gestión de inventario de *ManuMarket*.
+La forma recomendada de interactuar es el módulo `Sistema_Ticket_Soa`, desde la terminal sin depender del frontend.
 
-## Tecnologías usadas
+### Ejecutar con Docker (preferido)
 
-- **Backend**: Django 5.2, Django REST Framework, django-cors-headers
-- **Frontend**: Tailwind CSS
-- **Entorno**: Python 3.12+, Node.js 18+
+```bash
+docker compose build app          # solo la primera vez o cuando cambie el código
+docker compose up -d app          # crea el contenedor si no existe y lo deja disponible
+docker compose exec -it app python -m Sistema_Ticket_Soa.main
+```
+
+- El servicio `app` ya incluye las dependencias Python y ejecuta `python -m Sistema_Ticket_Soa.main`.
+- Si el contenedor `app` ya está creado/arriba, basta con repetir `docker compose exec -it app python -m Sistema_Ticket_Soa.main` para reingresar a la CLI sin recrearlo.
+- Si también necesitas el bus ESB para integraciones, levanta `docker compose up -d soabus` en otra terminal antes de ejecutar la CLI.
+- La base de datos SQLite `sistema_tickets.db` vive dentro del contenedor efímero; si deseas persistirla, añade un volumen en `docker-compose.yml` apuntando a `Sistema_Ticket_Soa/sistema_tickets.db`.
+- Credenciales admin por defecto: admin & admin123
+
+### Ejecutar en tu máquina (sin Docker)
+
+```bash
+cd /workspaces/helpdesk
+python -m venv .venv
+source .venv/bin/activate  # Windows: .\.venv\Scripts\activate
+pip install -r requirements.txt
+python -m Sistema_Ticket_Soa.main
+```
+
+### Flujo básico y credenciales iniciales
+
+- Usuario técnico precargado: `tecnico 1 / tecnico1234`.
+- Puedes registrar nuevos usuarios directamente desde el menú principal (opción 2) y luego autenticarlos para crear tickets, agregar comentarios y revisar historiales.
+- Presiona `Ctrl+C` para salir de la CLI de forma segura; el bus asíncrono se detendrá automáticamente.
 
 ---
 
-## Bus SOA (jrgiadach/soabus)
+## Integración opcional con Bus SOA (jrgiadach/soabus)
 
 Para integrar el bus ESB se añadió un servicio "gateway" dentro del servidor Node. Este se registra en el bus con el nombre `gwapi` y reexpone cualquier endpoint HTTP del backend a través del bus.
 
@@ -24,9 +48,6 @@ docker run -d \
    -p 5432:5432 \
    postgres:16
 
-# Esperar a que PostgreSQL esté listo (~5-10 segundos)
-sleep 10
-
 # Si ya tenías un contenedor previo con otra contraseña, elimínalo primero:
 # docker rm -f helpdesk-db
 ```
@@ -34,21 +55,20 @@ sleep 10
 ### 1b. Ejecutar el schema SQL
 
 ```bash
-# Crear la base de datos:
-PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE helpdesk;"
+# Crear la base de datos (dentro del contenedor `helpdesk-db`):
+docker exec -it helpdesk-db psql -U postgres -c "CREATE DATABASE helpdesk;"
 
-# Ejecutar el schema SQL:
-PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -d helpdesk -f db/schema.sql
+# Ejecutar el schema SQL (se envía el archivo desde el host al contenedor usando STDIN):
+docker exec -i helpdesk-db psql -U postgres -d helpdesk < db/schema.sql
 
 # Opcionalmente, aplica las migraciones adicionales:
-PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -d helpdesk -f db/migrations/002_assignment_and_notifications.sql
-PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -d helpdesk -f db/migrations/003_inventory_and_sales.sql
+docker exec -i helpdesk-db psql -U postgres -d helpdesk < db/migrations/002_assignment_and_notifications.sql
+docker exec -i helpdesk-db psql -U postgres -d helpdesk < db/migrations/003_inventory_and_sales.sql
 
 # Verificar que todo está correcto:
-PGPASSWORD=helpdesk psql -h 127.0.0.1 -U postgres -d helpdesk -c "SELECT id, full_name, email, role FROM users ORDER BY id;"
+docker exec -it helpdesk-db psql -U postgres -d helpdesk -c "SELECT id, full_name, email, role FROM users ORDER BY id;"
 ```
 
-**Nota**: Si PostgreSQL ya está corriendo en tu sistema, omite el paso de Docker.
 
 ### 2. Levantar el bus
 
@@ -137,37 +157,6 @@ ASSIGNMENT_JOB_BATCH_SIZE=20
 
 Cuando está habilitado, el job usa la cadena de conexión configurada en `DATABASE_URL` (o los valores `DB_*`) y registrará advertencias si no puede conectarse.
 
-## Ejecución (modo solo-frontend con API mock)
-
-Recomendado para desarrollo rápido y sin dependencias de Django/Postgres.
-
-1. Requisitos: Node.js 18+ (probado con Node 22)
-2. Inicia el servidor del frontend (incluye API mock en memoria):
-
-   ```bash
-   cd frontend-node
-   npm install
-   npm run start # o npm run dev para recarga con nodemon
-   ```
-
-3. Abre el frontend: <http://localhost:3000/>
-
-4. Credenciales de demo:
-
-   - admin@helpdesk.local / admin123 (rol ADMIN)
-   - trabajador@helpdesk.local / worker123 (rol EMPLOYEE)
-
-Notas:
-- Todas las páginas consumen endpoints same-origin, servidos por Express en `src/server.js`.
-- Los datos se almacenan en memoria y se reinician en cada arranque.
-- Endpoints disponibles: /ventas/user/login/, /ventas/user/me/, /ventas/productos/, /ventas/stocks/, /ventas/transacciones/, /ventas/historial-ventas/, /ventas/usuarios/, etc.
-- Recuperación de contraseña: visita `/forgot-password`, solicita el enlace y usa `/reset-password?token=<codigo>` para definir una nueva clave. En desarrollo se muestra el token generado directamente en pantalla para facilitar las pruebas. Controla el comportamiento con:
-
-   ```bash
-   PASSWORD_RESET_EXPIRES_MINUTES=60
-   PASSWORD_RESET_REVEAL_TOKEN=true # en producción cámbialo a false
-   ```
-
 ### Pruebas automatizadas del bus
 
 Se añadió una suite con [Vitest](https://vitest.dev/) para validar el gateway ESB:
@@ -188,35 +177,30 @@ Opcional. Mantener para referencia histórica. El frontend ya no requiere el bac
     ```bash
     python -m venv env
     source env/bin/activate # Windows: .\\env\\Scripts\\Activate.ps1
-   # ManuMarket (Frontend-only)
+    ```
 
-   Este repositorio ha sido convertido a modo "solo-frontend" para facilitar el desarrollo y demostraciones sin dependencias externas.
+2. (Contenido histórico del backend se mantiene fuera de este README).
 
-   El frontend se sirve con Node/Express desde `frontend-node/src/server.js` e incluye un API mock en memoria que emula los endpoints necesarios para la UI.
+## Modo gráfico opcional (Frontend Node + API mock)
 
-   ## Requisitos
+Para quienes prefieren una interfaz web, el repositorio mantiene un frontend en Node/Express con datos en memoria. Úsalo solo después de haber revisado la ticketera CLI.
 
-   - Node.js 18+ (probado con Node 22)
-   - npm
-
-   ## Ejecutar (modo rápido)
+1. **Requisitos**: Node.js 18+ (probado con Node 22).
+2. **Instalación y arranque**:
 
    ```bash
    cd frontend-node
    npm install
-   npm run start
-   # Abrir http://localhost:3000/
+   npm run start   # o npm run dev para recarga con nodemon
    ```
 
-   ## Credenciales demo
+3. **Acceso**: abre <http://localhost:3000/>.
+4. **Credenciales demo**:
+   - `admin@helpdesk.local / admin123` (rol ADMIN)
+   - `trabajador@helpdesk.local / worker123` (rol EMPLOYEE)
 
-   - admin / admin123 (ADMIN)
-   - trabajador / worker123 (EMPLOYEE)
-
-   ## Notas
-
-   - Los datos del API mock son almacenados en memoria y se reinician al reiniciar el servidor.
-   - Endpoints principales disponibles: `/ventas/user/login/`, `/ventas/user/me/`, `/ventas/productos/`, `/ventas/stocks/`, `/ventas/transacciones/`, `/ventas/historial-ventas/`, `/ventas/usuarios/`.
-   - Si más tarde deseas volver a integrar un backend real, reintroduce la carpeta `backend/` con tu API y ajusta las rutas si es necesario.
-
-   ---
+Notas rápidas:
+- Los endpoints viven en `src/server.js` y almacenan los datos en memoria, por lo que se reinician al reiniciar el servidor.
+- Disponible REST mock: `/ventas/user/login/`, `/ventas/user/me/`, `/ventas/productos/`, `/ventas/stocks/`, `/ventas/transacciones/`, `/ventas/historial-ventas/`, `/ventas/usuarios/`, entre otros.
+- Recuperación de contraseña de prueba configurable con `PASSWORD_RESET_EXPIRES_MINUTES` y `PASSWORD_RESET_REVEAL_TOKEN` en `frontend-node/.env`.
+- La suite `npm test` (Vitest) valida el gateway ESB y se mantiene para diagnosticar integraciones con el bus.

@@ -78,6 +78,8 @@ class TicketSystemApp:
                         self.interface.handle_change_password()
                     elif choice == "6" and self.auth_service.has_role('admin'):
                         self.interface.handle_view_all_tickets()
+                    elif choice == "7" and self.auth_service.has_role('admin'):
+                        self.interface.handle_close_ticket()
                     elif choice == "0":
                         self.auth_service.logout()
                         self.interface.clear_screen()

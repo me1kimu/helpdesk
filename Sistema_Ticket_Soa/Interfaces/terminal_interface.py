@@ -41,6 +41,7 @@ class TerminalInterface:
         print("5. Cambiar Contraseña")
         if user.Roll == 'admin':
             print("6. Ver Todos los Tickets")
+            print("7. Cerrar Ticket")
         print("0. Cerrar Sesión")
         print("="*50)
     
@@ -183,11 +184,52 @@ class TerminalInterface:
             print(f"   Estado: {ticket['Estado']}")
             print(f"   Solicitante: {ticket.get('SolicitanteNombre', 'N/A')}")
             print(f"   Creado: {ticket['Fecha_creacion'][:16]}")
+
+    def handle_close_ticket(self):
+        """Permite a un administrador cerrar un ticket"""
+        if not self.auth_service.has_role('admin'):
+            print("❌ No tienes permisos para esta acción.")
+            return
+
+        try:
+            ticket_id = int(input("ID del ticket a cerrar: "))
+        except ValueError:
+            print("❌ ID de ticket debe ser un número.")
+            return
+
+        tickets = self.ticket_service.get_all_tickets()
+        ticket = next((t for t in tickets if t['ID'] == ticket_id), None)
+
+        if not ticket:
+            print("❌ El ticket especificado no existe.")
+            return
+
+        print(f"\n📋 Ticket #{ticket['ID']} - {ticket['Titulo']}")
+        print(f"   Estado actual: {ticket['Estado']}")
+        confirm = input("¿Confirmar cierre? (s/N): ").strip().lower()
+        if confirm != 's':
+            print("⚠️ Operación cancelada.")
+            return
+
+        admin = self.auth_service.get_current_user()
+        if self.ticket_service.update_ticket_status(ticket_id, 'cerrado', admin.ID):
+            print("✅ Ticket cerrado exitosamente.")
+        else:
+            print("❌ No se pudo cerrar el ticket.")
     
     def handle_view_comments(self):
         """Muestra comentarios de un ticket"""
         try:
             ticket_id = int(input("ID del ticket: "))
+            user = self.auth_service.get_current_user()
+
+            if user.Roll != 'admin':
+                user_ticket_ids = {
+                    ticket['ID'] for ticket in self.ticket_service.get_tickets_by_user(user.ID)
+                }
+                if ticket_id not in user_ticket_ids:
+                    print("❌ No puedes consultar comentarios de tickets que no te pertenecen.")
+                    return
             comments = self.ticket_service.get_comments_by_ticket(ticket_id)
             
             print(f"\n=== COMENTARIOS - Ticket #{ticket_id} ===")
@@ -213,6 +255,14 @@ class TerminalInterface:
                 return
             
             user = self.auth_service.get_current_user()
+
+            if user.Roll != 'admin':
+                user_ticket_ids = {
+                    ticket['ID'] for ticket in self.ticket_service.get_tickets_by_user(user.ID)
+                }
+                if ticket_id not in user_ticket_ids:
+                    print("❌ No puedes comentar tickets que no te pertenecen.")
+                    return
             
             # Usar la versión que recibe parámetros directamente
             if self.ticket_service.add_comment(ticket_id, user.ID, contenido):
