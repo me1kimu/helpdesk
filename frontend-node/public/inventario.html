@@ -810,7 +810,7 @@
               alert("Error al actualizar producto: " + JSON.stringify(eJson));
               return;
             }
-            productoRes = await r.json();
+            // await r.json(); // Response not used
           }
 
           // Ahora manejamos el Stock asociado
