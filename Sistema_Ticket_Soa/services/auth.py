@@ -34,8 +34,7 @@ class AuthService:
         if not user_data:
             return {"success": False, "error": "Usuario no encontrado"}
         
-        hashed_input = self.db_manager.hash_password(password)
-        if user_data['Password_hash'] == hashed_input:
+        if self.db_manager.verify_password(password, user_data['Password_hash']):
             self.current_user = User(
                 ID=user_data['ID'],
                 Nombre=user_data['Nombre'],
