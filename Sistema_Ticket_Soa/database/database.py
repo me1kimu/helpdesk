@@ -126,18 +126,30 @@ class DatabaseManager:
         return f"pbkdf2_sha256${self._PBKDF2_ITERATIONS}${salt}${password_hash}"
 
     def verify_password(self, password: str, stored_hash: str) -> bool:
-        """Verifica una contraseña usando PBKDF2"""
+        """Verifica una contraseña usando PBKDF2 o hash legado SHA-256"""
         try:
+            if not isinstance(password, str) or not isinstance(stored_hash, str):
+                return False
+
+            if '$' not in stored_hash:
+                legacy_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+                return hmac.compare_digest(legacy_hash, stored_hash)
+
             algorithm, iterations, salt, expected_hash = stored_hash.split('$', 3)
             if algorithm != 'pbkdf2_sha256':
                 return False
+
+            parsed_iterations = int(iterations)
+            if parsed_iterations <= 0:
+                return False
+            parsed_iterations = min(parsed_iterations, self._PBKDF2_ITERATIONS)
 
             calculated_hash = hashlib.pbkdf2_hmac(
                 'sha256',
                 password.encode('utf-8'),
                 bytes.fromhex(salt),
-                int(iterations)
+                parsed_iterations
             ).hex()
             return hmac.compare_digest(calculated_hash, expected_hash)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, AttributeError):
             return False

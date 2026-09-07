@@ -35,11 +35,23 @@ class AuthService:
             return {"success": False, "error": "Usuario no encontrado"}
         
         if self.db_manager.verify_password(password, user_data['Password_hash']):
+            user_password_hash = user_data['Password_hash']
+            if isinstance(user_data['Password_hash'], str) and '$' not in user_data['Password_hash'] and isinstance(password, str):
+                user_password_hash = self.db_manager.hash_password(password)
+                conn = self.db_manager._get_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    'UPDATE Usuarios SET Password_hash = ? WHERE ID = ?',
+                    (user_password_hash, user_data['ID'])
+                )
+                conn.commit()
+                conn.close()
+
             self.current_user = User(
                 ID=user_data['ID'],
                 Nombre=user_data['Nombre'],
                 Email=user_data['Email'],
-                Password_hash=user_data['Password_hash'],
+                Password_hash=user_password_hash,
                 Roll=user_data['Roll'],
                 Fecha_creacion=user_data['Fecha_creacion'],
                 Estado=user_data['Estado'],
